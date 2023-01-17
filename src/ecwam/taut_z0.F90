@@ -341,6 +341,7 @@ CONTAINS
 
 !  Simple empirical fit to model drag coefficient
    FUNCTION CDM(U10)
+      !$loki routine seq
       REAL(KIND=JWRB), INTENT(IN) :: U10 
       REAL(KIND=JWRB) :: CDM
 
