@@ -30,6 +30,5 @@ if( clone_field_api )
    )
    
    set(FIELD_API_ENABLE_TESTS OFF)
-   set(FIELD_API_ENABLE_ACC OFF)
    FetchContent_MakeAvailable(field_api)
 endif()
