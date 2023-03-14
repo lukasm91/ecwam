@@ -47,6 +47,27 @@ USE YOWFIELD_MOD, ONLY : FREQUENCY_FIELD, ENVIRONMENT_FIELD, FORCING_FIELDS_FIEL
 
 USE YOMHOOK  , ONLY : LHOOK, DR_HOOK, JPHOOK
 
+!.....Adding global variables to driver symbol table for offload instructions
+USE YOWINDN, ONLY: dal2, k11w, inlcoef, k21w, fklam, fklam1, mfrstlw, ikp1, kfrh, af11, ikm1, dal1, mlsthg, k1w, ikm, fklap,  &
+& fklap1, k2w, ikp, rnlcoef
+USE YOWCOUP, ONLY: lwnemotauoc, lwnemocoustrn, lwnemocoustk, lwcou, wtauhf, x0tauhf, llgcbz0, lwnemocousend, lwvflx_snl,  &
+& lwflux, llnormagam, llcapchnk
+USE YOWPHYS, ONLY: satweights, cdisvis, tauwshelter, rnum, chnkmin_u, z0rat, dthrn_u, nsdsnth, z0tubmax, alpha, alphapmax,  &
+& alphamin, bmaxokap, gamnconst, indicessat, delta_sdis, swellf5, ndikcumul, cdis, ang_gc_c, cumulw, ang_gc_a, tailfactor,  &
+& ang_gc_b, dthrn_a, rnu, betamaxoxkappa2, zalp, tailfactor_pm, rn1_rn
+USE YOWPCONS, ONLY: zpi4gm2, zpi4gm1, gm1, sqrtgosurft, zpi, g
+USE YOWFRED, ONLY: omxkm3_gc, zpifr, dfim_sim, sinth, delkcc_gc_ns, dfimfr2, flogsprdm1, costh, xkm_gc, c2osqrtvg_gc, xk_gc,  &
+& xkmsqrtvgoc2_gc, delkcc_omxkm3_gc, fr5, fr, om3gmkm_gc, cofrm4, omega_gc, rhowg_dfim, cm_gc, flmax, th, nwav_gc, dfim,  &
+& delth, dfimofr, dfimfr
+USE YOWPARAM, ONLY: nfre_odd, llunstr, nfre_red
+USE YOWICE, ONLY: lmaskice, lwamrsetci, ciblock, cdicwa, cithrsh, licerun, cithrsh_tail, lciwabr
+USE YOWWNDG, ONLY: icode, icode_cpl
+USE YOWSTAT, ONLY: lbiwbk, idamping, isnonlin, iphys
+USE YOWALTAS, ONLY: bfcrv, egrcrv, afcrv
+USE YOWCOUT, ONLY: lwfluxout
+USE YOWWIND, ONLY: wspmin
+USE YOWTABL, ONLY: swellft
+      
 ! ----------------------------------------------------------------------
 
 IMPLICIT NONE
@@ -139,7 +160,9 @@ IF (CDATE >= CDTIMPNEXT) THEN
 &                           PHIAW=INTFLDS%PHIAW)
     CALL SRC_CONTRIBS%INIT(FL1=FL1, XLLWS=XLLWS, MIJ=MIJ)
 
-!$loki update_device
+!$acc update device(  &
+!$acc & dal2,k11w,lwnemotauoc,satweights,zpi4gm2,omxkm3_gc,rnum,zpifr,dfim_sim,chnkmin_u,z0rat,dthrn_u,ciblock,fklam1,ikp1,sinth,zpi4gm1,x0tauhf,af11,nfre,llgcbz0,bmaxokap,llunstr,flogsprdm1,gm1,lbiwbk,lwfluxout,xkm_gc,idamping,ikm1,cdicwa,dal1,indicessat,ndikcumul,fr,lwnemocousend,egrcrv,lwvflx_snl,sqrtgosurft,cithrsh,cdis,mlsthg,om3gmkm_gc,cofrm4,k1w,isnonlin,afcrv,licerun,cm_gc,fklap,zpi,llnormagam,lwnemocou,rnu,llcapchnk,cithrsh_tail,g,icode_cpl,nwav_gc,dfim,delth,k2w,dfimfr,dfimofr,swellft,ikp,rnlcoef,cdisvis,inlcoef,lwnemocoustrn,tauwshelter,k21w,nfre_odd,fklam,lwcou,lmaskice,lwamrsetci,nsdsnth,mfrstlw,z0tubmax,icode,wtauhf,kfrh,alpha,alphapmax,delkcc_gc_ns,alphamin,gamnconst,dfimfr2,nang,costh,bfcrv,delta_sdis,c2osqrtvg_gc,swellf5,xk_gc,xkmsqrtvgoc2_gc,delkcc_omxkm3_gc,nfre_red,lwflux,ang_gc_c,ikm,omega_gc,rhowg_dfim,cumulw,ang_gc_a,flmax,wspmin,th,tailfactor,idelt,ang_gc_b,dthrn_a,fklap1,lciwabr,iphys,betamaxoxkappa2,zalp,tailfactor_pm,lwnemocoustk,rn1_rn,fr5 &
+!$acc &  )
 
 !$OMP PARALLEL DO SCHEDULE(DYNAMIC,1) PRIVATE(ICHNK) FIRSTPRIVATE(WVPRPT_FIELD, WVENVI_FIELD, FF_NOW_FIELD, WAM2NEMO_FIELD, &
 !$OMP INTFLDS_FIELD, SRC_CONTRIBS)
@@ -175,7 +198,6 @@ IF (CDATE >= CDTIMPNEXT) THEN
     ENDDO
 !$OMP END PARALLEL DO
 
-!$loki update_host
     CALL WVPRPT_FIELD%FINAL()
     CALL WVENVI_FIELD%FINAL()
     CALL FF_NOW_FIELD%FINAL()
