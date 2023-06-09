@@ -105,13 +105,13 @@ ecbuild_add_option( FEATURE ACC
 ecbuild_add_option( FEATURE WAM_LOKI
                     DEFAULT OFF
                     DESCRIPTION "Apply Loki transformations to ecWam physics"
-                    CONDITION HAVE_LOKI )
+                    CONDITION loki_FOUND )
 
 ### Apply Loki source-to-source transformations to the ecWam physics with GPU offload
 ecbuild_add_option( FEATURE WAM_LOKI_GPU
                     DEFAULT OFF
                     DESCRIPTION "Apply Loki transformations to ecWam physics with GPU offload"
-                    CONDITION HAVE_ACC AND field_api_FOUND AND HAVE_LOKI )
+                    CONDITION HAVE_ACC AND field_api_FOUND AND loki_FOUND )
 
 ### Sources
 
