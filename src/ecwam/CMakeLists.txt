@@ -692,7 +692,7 @@ if( HAVE_CUDA )
   endforeach()
   list(APPEND phys_srcs femean.F90 meansqs_lf.F90 omegagc.F90 semean.F90 sinput_jan.F90 wsigstar.F90)
 
-  set_source_files_properties( ${wam_scc_cuf_srcs} PROPERTIES COMPILE_OPTIONS "-cuda" )
+  set_source_files_properties( ${wam_scc_cuf_srcs} PROPERTIES COMPILE_OPTIONS "-Mcuda=maxregcount:128" )
 
   ecbuild_add_library(
   	TARGET           ${ecwam}_scc_cuf
