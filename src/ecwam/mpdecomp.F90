@@ -152,6 +152,7 @@ SUBROUTINE MPDECOMP(NPR, MAXLEN, LLIRANK, LLWVENVI)
       USE MPL_MODULE, ONLY : MPL_BROADCAST, MPL_ALLGATHERV, MPL_SCATTERV
       USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
       USE YOWABORT , ONLY : WAM_ABORT
+      USE WVWAMINIT_MOD, ONLY : WVWAMINIT
 
 !----------------------------------------------------------------------
 
@@ -160,7 +161,6 @@ SUBROUTINE MPDECOMP(NPR, MAXLEN, LLIRANK, LLWVENVI)
 #include "abort1.intfb.h"
 #include "jonswap.intfb.h"
 #include "mchunk.intfb.h"
-#include "wvwaminit.intfb.h"
 #include "wam_sortini.intfb.h"
 #include "wam_sorti.intfb.h"
 #include "wam_nproma.intfb.h"

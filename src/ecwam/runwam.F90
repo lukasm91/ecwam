@@ -112,7 +112,7 @@
       USE YOWTEST, ONLY : IU06
       USE YOWGSTATS, ONLY : WAM_GSTATS_SETUP, WAM_GSTATS_PRINT, &
      &                      WAM_GSTATS_FILE_OPEN, WAM_GSTATS_FILE_CLOSE
-
+      USE WVWAMINIT_MOD, ONLY : WVWAMINIT
 ! ----------------------------------------------------------------------
 
       IMPLICIT NONE
@@ -122,7 +122,6 @@
 #include "wavemdl.intfb.h"
 #include "wvalloc.intfb.h"
 #include "wvwamdecomp.intfb.h"
-#include "wvwaminit.intfb.h"
 #include "wvwaminit1.intfb.h"
 #include "ec_meminfo.intfb.h"
 #include "wam_user_clock.intfb.h"

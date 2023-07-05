@@ -7,6 +7,8 @@
 ! nor does it submit to any jurisdiction.
 !
 
+MODULE WVWAMINIT_MOD
+CONTAINS
       SUBROUTINE WVWAMINIT (LLCOUPLED, IULOG, LLRNL,                    &
      &                      NGAUSSW, NLON, NLAT, RSOUTW, RNORTW)
 
@@ -33,6 +35,9 @@
 
 ! ----------------------------------------------------------------------
 
+#if defined(WAM_PHYS_GPU) || defined(WAM_CUDA)
+      USE OPENACC
+#endif
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
       USE YOWMAP   , ONLY : AMOSOP   ,AMONOP   ,IQGAUSS
@@ -74,6 +79,7 @@
       LOGICAL, INTENT(IN) :: LLCOUPLED
       LOGICAL :: LLEXIST
       LOGICAL, SAVE :: LFRST
+      INTEGER :: DEVTYPE, DEVNUM, DEV
 
       DATA LFRST /.TRUE./
 
@@ -85,6 +91,13 @@
 
       IRANK = MPL_MYRANK()
       NPROC = MPL_NPROC()
+
+#if defined(WAM_PHYS_GPU) || defined(WAM_CUDA)
+      DEVTYPE = ACC_GET_DEVICE_TYPE()
+      DEVNUM = ACC_GET_NUM_DEVICES(DEVTYPE)
+      DEV = MOD(IRANK-1, DEVNUM)
+      CALL ACC_SET_DEVICE_NUM(DEV, DEVTYPE)
+#endif
 
 !     STANDARD OUTPUT UNIT
 !     --------------------
@@ -210,3 +223,4 @@
       IF (LHOOK) CALL DR_HOOK('WVWAMINIT',1,ZHOOK_HANDLE)
 
       END SUBROUTINE WVWAMINIT
+END MODULE WVWAMINIT_MOD
