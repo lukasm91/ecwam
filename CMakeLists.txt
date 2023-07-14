@@ -112,7 +112,7 @@ ecbuild_add_option( FEATURE WAM_LOKI
 ecbuild_add_option( FEATURE WAM_GPU
                     DEFAULT ON
                     DESCRIPTION "Offload ecWam physics to the GPU"
-                    CONDITION HAVE_ACC AND field_api_FOUND )
+                    CONDITION field_api_FOUND )
 
 ### check for CUDA
 include(CheckLanguage)
