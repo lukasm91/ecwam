@@ -23,9 +23,18 @@ projects :
         git     : https://github.com/ecmwf-ifs/fiat 
         version : main 
 
+    - loki :
+        git     : https://github.com/ecmwf-ifs/loki
+        version : main
+        optional: true
+        require : ecbuild
+        cmake   : >
+            LOKI_ENABLE_TESTS=OFF
+            LOKI_ENABLE_NO_INSTALL=ON
+
     - ecwam :
         dir     : $PWD
-        version : main
+        version : naan-phys-gpu
         require : fiat 
 
 options :
@@ -42,3 +51,23 @@ options :
         help  : Disable OpenMP
         cmake : ENABLE_OMP=OFF
 
+    - with-loki :
+        help  : Enable Loki source-to-source transformations for ecWam physics
+        cmake : >
+            ENABLE_WAM_LOKI=ON
+            LOKI_ENABLE_NO_INSTALL=OFF
+
+    - without-loki-install :
+        help  : Skip installation of Loki (Requires Loki to be on the PATH)
+        cmake : >
+            LOKI_ENABLE_NO_INSTALL=ON
+            LOKI_ENABLE_CLAW=OFF
+
+    - loki-frontend :
+        help  : Frontend parser to use for Loki transformations
+        cmake : LOKI_FRONTEND={{value}}
+
+    - with-cuda :
+        help  : Enable CUDA Fortran variant of ecWam physics
+        cmake : >
+            ENABLE_CUDA=ON
