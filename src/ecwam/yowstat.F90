@@ -90,7 +90,7 @@
       LOGICAL :: LNSESTART
       LOGICAL :: LSMSSIG_WAM
 
-      REAL(KIND=JWRB) :: TIME_PROPAG, TIME_PHYS
+      REAL(KIND=JWRB) :: TIME_PROPAG, TIME_PHYS, TIME_PHYS_KERNEL
 
 !*     VARIABLE.   TYPE.     PURPOSE.
 !      ---------   -------   --------

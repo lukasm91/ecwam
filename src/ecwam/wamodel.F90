@@ -258,12 +258,12 @@ IF (LHOOK) CALL DR_HOOK('WAMODEL',0,ZHOOK_HANDLE)
           CALL WAMINTGR_LOKI_GPU(CDTPRA, CDATE, CDATEWH, CDTIMP, CDTIMPNEXT, &
  &                       BLK2GLO,                                    &
  &                       WVENVI, WVPRPT, FF_NOW, FF_NEXT, INTFLDS,   &
- &                       WAM2NEMO, MIJ, FL1, XLLWS, TIME1)
+ &                       WAM2NEMO, MIJ, FL1, XLLWS)
 #elif defined(WAM_CUDA)
           CALL WAMINTGR_CUF(CDTPRA, CDATE, CDATEWH, CDTIMP, CDTIMPNEXT, &
  &                       BLK2GLO,                                    &
  &                       WVENVI, WVPRPT, FF_NOW, FF_NEXT, INTFLDS,   &
- &                       WAM2NEMO, MIJ, FL1, XLLWS, TIME1)
+ &                       WAM2NEMO, MIJ, FL1, XLLWS)
 #else
           CALL WAMINTGR(CDTPRA, CDATE, CDATEWH, CDTIMP, CDTIMPNEXT, &
  &                       BLK2GLO,                                    &
