@@ -613,11 +613,11 @@ if( HAVE_WAM_LOKI )
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
      					 ${${PNAME}_OCEANMODEL_LIBRARIES}
-                         $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
      	PRIVATE_LIBS     eccodes_f90
      					 ${MULTIO_LIBRARIES}
      					 ${OpenMP_Fortran_LIBRARIES}
      					 field_api_${prec}
+                         $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
      	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
      	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
      	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
@@ -661,11 +661,11 @@ if( HAVE_WAM_LOKI )
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
      					 ${${PNAME}_OCEANMODEL_LIBRARIES}
-                         $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
      	PRIVATE_LIBS     eccodes_f90
      					 ${MULTIO_LIBRARIES}
      					 ${OpenMP_Fortran_LIBRARIES}
      					 field_api_${prec}
+                         $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
      	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
      	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
      	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
@@ -711,11 +711,11 @@ if( HAVE_CUDA )
   	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
   					 ${MPI_Fortran_LIBRARIES}
   					 ${${PNAME}_OCEANMODEL_LIBRARIES}
-                     $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
   	PRIVATE_LIBS     eccodes_f90
   					 ${MULTIO_LIBRARIES}
   					 ${OpenMP_Fortran_LIBRARIES}
   					 field_api_${prec}
+                     $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
   	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
   	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
   	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_CUDA

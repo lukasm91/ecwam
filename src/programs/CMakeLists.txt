@@ -42,14 +42,14 @@ if( HAVE_WAM_LOKI )
         ecbuild_add_executable(
             TARGET          ${PROJECT_NAME}-chief-loki-scc
             SOURCES         chief.F90
-            LIBS            ${PROJECT_NAME}_scc ${OpenMP_Fortran_LIBRARIES}
+            LIBS            ${PROJECT_NAME}_scc ${OpenMP_Fortran_LIBRARIES} $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
         )
         ecwam_target_compile_definitions_FILENAME(${PROJECT_NAME}-chief-loki-scc)
 
         ecbuild_add_executable(
             TARGET          ${PROJECT_NAME}-chief-loki-scc-stack
             SOURCES         chief.F90
-            LIBS            ${PROJECT_NAME}_scc_stack ${OpenMP_Fortran_LIBRARIES}
+            LIBS            ${PROJECT_NAME}_scc_stack ${OpenMP_Fortran_LIBRARIES} $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
         )
         ecwam_target_compile_definitions_FILENAME(${PROJECT_NAME}-chief-loki-scc-stack)
     endif()
@@ -59,7 +59,7 @@ if( HAVE_CUDA )
     ecbuild_add_executable(
         TARGET          ${PROJECT_NAME}-chief-scc-cuf
         SOURCES         chief.F90
-        LIBS            ${PROJECT_NAME}_scc_cuf ${OpenMP_Fortran_LIBRARIES}
+        LIBS            ${PROJECT_NAME}_scc_cuf ${OpenMP_Fortran_LIBRARIES} $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
     )
     ecwam_target_compile_definitions_FILENAME(${PROJECT_NAME}-chief-scc-cuf)
 endif()
