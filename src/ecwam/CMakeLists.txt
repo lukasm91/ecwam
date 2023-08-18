@@ -429,7 +429,6 @@ endif()
 ecbuild_add_library(
     TARGET           ${ecwam}
     TYPE             ${LIBRARY_TYPE}
-    DEFINITIONS      ${ECWAM_DEFINITIONS}
     SOURCES          ${ecwam_srcs} wamintgr.F90 ${phys_srcs} ${global_var_mods}
     PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
                      ${MPI_Fortran_LIBRARIES}
@@ -441,6 +440,7 @@ ecbuild_add_library(
                      $<${HAVE_ACC}:OpenACC::OpenACC_Fortran>
     PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
     PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS}
+    PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS}
 )
 
 ecwam_target_fortran_module_directory(
@@ -512,21 +512,21 @@ if( HAVE_WAM_LOKI )
       DEPENDS ${phys_srcs}
   )
 
-     ecbuild_add_library(
-         TARGET           ${ecwam}_idem
-         TYPE             ${LIBRARY_TYPE}
-         DEFINITIONS      ${ECWAM_DEFINITIONS}
-         SOURCES          ${ecwam_srcs} ${loki_idem_srcs} ${phys_srcs} ${global_var_mods}
-         PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
-                          ${MPI_Fortran_LIBRARIES}
-                          ${${PNAME}_OCEANMODEL_LIBRARIES}
-         PRIVATE_LIBS     eccodes_f90
-                          ${MULTIO_LIBRARIES}
-                          ${OpenMP_Fortran_LIBRARIES}
-                          field_api_${prec}
-         PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
-         PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
-     )
+  ecbuild_add_library(
+      TARGET           ${ecwam}_idem
+      TYPE             ${LIBRARY_TYPE}
+      SOURCES          ${ecwam_srcs} ${loki_idem_srcs} ${phys_srcs} ${global_var_mods}
+      PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
+                       ${MPI_Fortran_LIBRARIES}
+                       ${${PNAME}_OCEANMODEL_LIBRARIES}
+      PRIVATE_LIBS     eccodes_f90
+                       ${MULTIO_LIBRARIES}
+                       ${OpenMP_Fortran_LIBRARIES}
+                       field_api_${prec}
+      PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
+      PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+      PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS}
+  )
 
   ecwam_target_fortran_module_directory(
       TARGET ${ecwam}_idem
@@ -559,7 +559,6 @@ if( HAVE_WAM_LOKI )
   ecbuild_add_library(
       TARGET           ${ecwam}_idem_stack
       TYPE             ${LIBRARY_TYPE}
-      DEFINITIONS      ${ECWAM_DEFINITIONS}
       SOURCES          ${ecwam_srcs} ${loki_idem_stack_srcs} ${phys_srcs} ${global_var_mods}
       PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
                        ${MPI_Fortran_LIBRARIES}
@@ -570,6 +569,7 @@ if( HAVE_WAM_LOKI )
                        field_api_${prec}
       PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
       PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+      PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS}
   )
 
   ecwam_target_fortran_module_directory(
@@ -609,7 +609,6 @@ if( HAVE_WAM_LOKI )
      ecbuild_add_library(
      	TARGET           ${ecwam}_scc
      	TYPE             ${LIBRARY_TYPE}
-     	DEFINITIONS      ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
      	SOURCES          ${ecwam_srcs} ${loki_scc_srcs} ${phys_srcs}
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
@@ -621,6 +620,7 @@ if( HAVE_WAM_LOKI )
      					 field_api_${prec}
      	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
      	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+     	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
      )
      
      ecwam_target_fortran_module_directory(
@@ -657,7 +657,6 @@ if( HAVE_WAM_LOKI )
      ecbuild_add_library(
      	TARGET           ${ecwam}_scc_stack
      	TYPE             ${LIBRARY_TYPE}
-     	DEFINITIONS      ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
      	SOURCES          ${ecwam_srcs} ${loki_scc_stack_srcs} ${phys_srcs}
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
@@ -669,6 +668,7 @@ if( HAVE_WAM_LOKI )
      					 field_api_${prec}
      	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
      	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+     	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_PHYS_GPU
      )
      
      ecwam_target_fortran_module_directory(
@@ -707,7 +707,6 @@ if( HAVE_CUDA )
   ecbuild_add_library(
   	TARGET           ${ecwam}_scc_cuf
   	TYPE             ${LIBRARY_TYPE}
-  	DEFINITIONS      ${ECWAM_DEFINITIONS} WAM_CUDA
   	SOURCES          ${ecwam_srcs} ${wam_scc_cuf_srcs} ${phys_srcs}
   	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
   					 ${MPI_Fortran_LIBRARIES}
@@ -719,6 +718,7 @@ if( HAVE_CUDA )
   					 field_api_${prec}
   	PUBLIC_INCLUDES  $<INSTALL_INTERFACE:include>
   	PRIVATE_INCLUDES ${${PNAME}_OCEANMODEL_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+  	PUBLIC_DEFINITIONS ${ECWAM_DEFINITIONS} WAM_CUDA
   )
 
   ecwam_target_fortran_module_directory(
