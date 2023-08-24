@@ -118,7 +118,7 @@
               X32 = X12+XK2SQ
               OM1 = SQRT(G*XK1)
               OM2 = SQRT(G*XK2)
-              OM3 = SQRT(G*XK3)
+              OM3 = SQRT(G*XK3)+DEL1
               F1 = SQRT(XK1/(2.0_JWRB*OM1))
               F2 = SQRT(XK2/(2.0_JWRB*OM2))
               F3 = SQRT(XK3/(2.0_JWRB*OM3))
