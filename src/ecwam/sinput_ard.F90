@@ -82,7 +82,7 @@ SUBROUTINE SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
 
       USE YOWCOUP  , ONLY : LLCAPCHNK,LLNORMAGAM
       USE YOWFRED  , ONLY : FR       ,TH       ,DFIM     ,COSTH  ,SINTH, ZPIFR, DELTH
-      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANG_PARAM
       USE YOWPCONS , ONLY : G        ,GM1      ,EPSMIN, EPSUS, ZPI
       USE YOWPHYS  , ONLY : ZALP     ,TAUWSHELTER, XKAPPA, BETAMAXOXKAPPA2,    &
      &                      RN1_RN, &
@@ -127,7 +127,7 @@ SUBROUTINE SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
       REAL(KIND=JWRB) :: TAUPX, TAUPY
       REAL(KIND=JWRB) :: DSTAB2
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(NFRE) :: CONST, SIG, SIGM1, SIG2, COEF, COEF5, DFIM_SIG2
+      REAL(KIND=JWRB) :: CONST, SIG, SIG2, COEF, COEF5, DFIM_SIG2
       REAL(KIND=JWRB), DIMENSION(KIJL) :: CONSTF, CONST11, CONST22
       REAL(KIND=JWRB), DIMENSION(KIJL) :: Z0VIS, Z0NOZ, FWW
       REAL(KIND=JWRB), DIMENSION(KIJL) :: PVISC, PTURB
@@ -137,13 +137,14 @@ SUBROUTINE SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
       REAL(KIND=JWRB), DIMENSION(KIJL) :: CSTRNFAC
       REAL(KIND=JWRB), DIMENSION(KIJL) :: FLP_AVG, SLP_AVG
       REAL(KIND=JWRB), DIMENSION(KIJL) :: ROGOROAIR, AIRD_PVISC
-      REAL(KIND=JWRB), DIMENSION(KIJL,NGST) :: XSTRESS, YSTRESS, FLP, SLP
-      REAL(KIND=JWRB), DIMENSION(KIJL,NGST) :: USG2, TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
-      REAL(KIND=JWRB), DIMENSION(KIJL,NGST) :: UCNZALPD
-      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE) :: XNGAMCONST
-      REAL(KIND=JWRB), DIMENSION(KIJL,NGST) :: GAMNORMA ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
+      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: XSTRESS, YSTRESS, FLP, SLP
+      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: USG2, TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
+      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: UCNZALPD
+      REAL(KIND=JWRB), DIMENSION(KIJL) :: XNGAMCONST
+      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: GAMNORMA ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
       REAL(KIND=JWRB), DIMENSION(KIJL) :: DSTAB1, TEMP1, TEMP2
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NGST) :: COSLP, GAM0, DSTAB
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM,2) :: GAM0, DSTAB
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM) :: COSLP
 
       LOGICAL :: LTAUWSHELTER
 ! ----------------------------------------------------------------------
@@ -161,34 +162,17 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
         LTAUWSHELTER = .TRUE.
       ENDIF
 
-      IF (LLNORMAGAM) THEN
-        DO IJ=KIJS,KIJL
-          CSTRNFAC(IJ) = CONSTN * RNFAC(IJ) / RAORW(IJ)
-        ENDDO
-        DO M=1,NFRE
-          DO IJ=KIJS,KIJL
-            XNGAMCONST(IJ,M) = CSTRNFAC(IJ)*XK2CG(IJ,M)
-          ENDDO
-        ENDDO
-
-      ELSE
-        XNGAMCONST(KIJS:KIJL,:) = 0.0_JWRB
-      ENDIF
-
 
 !     ESTIMATE THE STANDARD DEVIATION OF GUSTINESS.
       IF (NGST > 1) CALL WSIGSTAR (KIJS, KIJL, WSWAVE, UFRIC, Z0M, WSTAR, SIG_N)
 
+
+      IF (LLNORMAGAM) THEN
+        DO IJ=KIJS,KIJL
+          CSTRNFAC(IJ) = CONSTN * RNFAC(IJ) / RAORW(IJ)
+        ENDDO
+      ENDIF
 ! ----------------------------------------------------------------------
-
-      DO M=1,NFRE
-        SIG(M) = ZPIFR(M)
-        SIGM1(M) = 1.0_JWRB/SIG(M)
-        SIG2(M) = SIG(M)**2
-        DFIM_SIG2(M)=DFIM(M)*SIG2(M)
-        CONST(M)=SIG(M)*CONST1
-      ENDDO
-
 
       IF (LLSNEG) THEN
 !!!!  only for the negative sinput
@@ -209,8 +193,9 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
         ENDDO
 
         DO M=1,NFRE
-          COEF(M) =-SWELLF*16._JWRB*SIG2(M)/G
-          COEF5(M)=-SWELLF5*2._JWRB*SQRT(2._JWRB*NU_AIR*SIG(M))
+          SIG = ZPIFR(M)
+          SIG2 = SIG**2
+          DFIM_SIG2=DFIM(M)*SIG2
 
           K=1
           DO IJ=KIJS,KIJL
@@ -223,7 +208,7 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
           ENDDO
 
           DO IJ=KIJS,KIJL
-            UORBT(IJ) = UORBT(IJ)+DFIM_SIG2(M)*TEMP(IJ)
+            UORBT(IJ) = UORBT(IJ)+DFIM_SIG2*TEMP(IJ)
             AORB(IJ) = AORB(IJ)+DFIM(M)*TEMP(IJ)
           ENDDO
         ENDDO
@@ -330,11 +315,9 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
         ENDDO
 
       ELSE
-        DO IGST=1,NGST
-          DO K=1,NANG
-            DO IJ=KIJS,KIJL
-              COSLP(IJ,K,IGST) = COSWDIF(IJ,K)
-            ENDDO
+        DO K=1,NANG
+          DO IJ=KIJS,KIJL
+            COSLP(IJ,K) = COSWDIF(IJ,K)
           ENDDO
         ENDDO
       ENDIF
@@ -352,6 +335,12 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
       ENDIF
 
       DO M=1,NFRE
+        SIG = ZPIFR(M)
+        SIG2 = SIG**2
+        CONST=SIG*CONST1
+
+        COEF =-SWELLF*16._JWRB*SIG2/G
+        COEF5=-SWELLF5*2._JWRB*SQRT(2._JWRB*NU_AIR*SIG)
 
         IF (LTAUWSHELTER) THEN
           DO IGST=1,NGST
@@ -361,14 +350,6 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
               USDIRP(IJ,IGST)=ATAN2(TAUPX,TAUPY)
               USTP(IJ,IGST)=(TAUPX**2+TAUPY**2)**0.25_JWRB
               USTPM1(IJ,IGST)=1.0_JWRB/MAX(USTP(IJ,IGST),EPSUS)
-            ENDDO
-          ENDDO
-
-          DO IGST=1,NGST
-            DO K=1,NANG
-              DO IJ=KIJS,KIJL
-                COSLP(IJ,K,IGST) = COS(TH(K)-USDIRP(IJ,IGST))
-              ENDDO
             ENDDO
           ENDDO
 
@@ -389,7 +370,7 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
         ENDDO
         DO IJ=KIJS,KIJL
           ZCN(IJ) = LOG(WAVNUM(IJ,M)*Z0M(IJ))
-          CNSN(IJ) = CONST(M)*RAORW(IJ)
+          CNSN(IJ) = CONST*RAORW(IJ)
         ENDDO
 
 !*    2.1 LOOP OVER DIRECTIONS.
@@ -401,30 +382,42 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
           ENDDO
         ENDDO
 
+        IF (LLNORMAGAM) THEN
+          DO IJ=KIJS,KIJL
+            XNGAMCONST(IJ) = CSTRNFAC(IJ)*XK2CG(IJ,M)
+          ENDDO
+        ENDIF
+
+        IF (LLSNEG) THEN
+!       SWELL DAMPING:
+          DO IJ=KIJS,KIJL
+            DSTAB1(IJ) = COEF5*AIRD_PVISC(IJ)*WAVNUM(IJ,M)
+            TEMP1(IJ) = COEF*RAORW(IJ)
+          ENDDO
+        ENDIF
+
         DO IGST=1,NGST
           DO K=1,NANG
+            IF(LTAUWSHELTER)THEN
+              DO IJ=KIJS,KIJL
+                COSLP(IJ,K) = COS(TH(K)-USDIRP(IJ,IGST))
+              ENDDO
+            ENDIF
             DO IJ=KIJS,KIJL
-              IF (COSLP(IJ,K,IGST) > 0.01_JWRB) THEN
-                X    = COSLP(IJ,K,IGST)*UCN(IJ,IGST)
-                ZLOG = ZCN(IJ) + UCNZALPD(IJ,IGST)/COSLP(IJ,K,IGST)
+              GAM0(IJ,K,IGST) = 0.0_JWRB
+              IF (COSLP(IJ,K) > 0.01_JWRB) THEN
+                X    = COSLP(IJ,K)*UCN(IJ,IGST)
+                ZLOG = ZCN(IJ) + UCNZALPD(IJ,IGST)/COSLP(IJ,K)
                 IF (ZLOG < 0.0_JWRB) THEN
                   ZLOG2X=ZLOG*ZLOG*X
                   GAM0(IJ,K,IGST) = EXP(ZLOG)*ZLOG2X*ZLOG2X * CNSN(IJ)
                   XLLWS(IJ,K,M) = 1.0_JWRB
-                ELSE
-                  GAM0(IJ,K,IGST) = 0.0_JWRB
                 ENDIF
-              ELSE
-                GAM0(IJ,K,IGST) = 0.0_JWRB
               ENDIF
             ENDDO
           ENDDO
-        ENDDO
 
-
-        IF (LLNORMAGAM) THEN
-
-          DO IGST=1,NGST
+          IF (LLNORMAGAM) THEN
 
             SUMF(KIJS:KIJL) = 0.0_JWRB
             SUMFSIN2(KIJS:KIJL) = 0.0_JWRB
@@ -436,31 +429,21 @@ IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
             ENDDO
 
             DO IJ=KIJS,KIJL
-              ZNZ = XNGAMCONST(IJ,M)*USTPM1(IJ,IGST)
+              ZNZ = XNGAMCONST(IJ)*USTPM1(IJ,IGST)
               GAMNORMA(IJ,IGST) = (1.0_JWRB + ZNZ*SUMFSIN2(IJ)) / (1.0_JWRB + ZNZ*SUMF(IJ))
             ENDDO
 
-          ENDDO
+          ENDIF
 
-        ENDIF
-
-
-        IF (LLSNEG) THEN
-!       SWELL DAMPING:
-          DO IJ=KIJS,KIJL
-            DSTAB1(IJ) = COEF5(M)*AIRD_PVISC(IJ)*WAVNUM(IJ,M)
-            TEMP1(IJ) = COEF(M)*RAORW(IJ)
-          ENDDO
-
-          DO IGST=1,NGST
+          IF (LLSNEG) THEN
             DO K=1,NANG
               DO IJ=KIJS,KIJL
-                DSTAB2 = TEMP1(IJ)*(TEMP2(IJ)+(FU+FUD*COSLP(IJ,K,IGST))*USTP(IJ,IGST))
+                DSTAB2 = TEMP1(IJ)*(TEMP2(IJ)+(FU+FUD*COSLP(IJ,K))*USTP(IJ,IGST))
                 DSTAB(IJ,K,IGST) = DSTAB1(IJ)+PTURB(IJ)*DSTAB2
               ENDDO
             ENDDO
-          ENDDO
-        ENDIF
+          ENDIF
+        ENDDO
 
 
 !*    2.2 UPDATE THE SHELTERING STRESS (in any),
