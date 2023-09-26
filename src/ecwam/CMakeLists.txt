@@ -433,6 +433,7 @@ ecbuild_add_library(
     PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
                      ${MPI_Fortran_LIBRARIES}
                      ${${PNAME}_OCEANMODEL_LIBRARIES}
+                     nvhpcwrapnvtx
     PRIVATE_LIBS     eccodes_f90
                      ${MULTIO_LIBRARIES}
                      ${OpenMP_Fortran_LIBRARIES}
@@ -518,6 +519,7 @@ if( HAVE_WAM_LOKI )
       PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
                        ${MPI_Fortran_LIBRARIES}
                        ${${PNAME}_OCEANMODEL_LIBRARIES}
+                     nvhpcwrapnvtx
       PRIVATE_LIBS     eccodes_f90
                        ${MULTIO_LIBRARIES}
                        ${OpenMP_Fortran_LIBRARIES}
@@ -561,6 +563,7 @@ if( HAVE_WAM_LOKI )
       PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
                        ${MPI_Fortran_LIBRARIES}
                        ${${PNAME}_OCEANMODEL_LIBRARIES}
+                       nvhpcwrapnvtx
       PRIVATE_LIBS     eccodes_f90
                        ${MULTIO_LIBRARIES}
                        ${OpenMP_Fortran_LIBRARIES}
@@ -610,6 +613,7 @@ if( HAVE_WAM_LOKI )
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
      					 ${${PNAME}_OCEANMODEL_LIBRARIES}
+                         nvhpcwrapnvtx
      	PRIVATE_LIBS     eccodes_f90
      					 ${MULTIO_LIBRARIES}
      					 ${OpenMP_Fortran_LIBRARIES}
@@ -657,6 +661,7 @@ if( HAVE_WAM_LOKI )
      	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
      					 ${MPI_Fortran_LIBRARIES}
      					 ${${PNAME}_OCEANMODEL_LIBRARIES}
+                         nvhpcwrapnvtx
      	PRIVATE_LIBS     eccodes_f90
      					 ${MULTIO_LIBRARIES}
      					 ${OpenMP_Fortran_LIBRARIES}
@@ -706,6 +711,7 @@ if( HAVE_CUDA )
   	PUBLIC_LIBS      fiat parkind_${prec} ${ecwam}_intfb
   					 ${MPI_Fortran_LIBRARIES}
   					 ${${PNAME}_OCEANMODEL_LIBRARIES}
+                         nvhpcwrapnvtx
   	PRIVATE_LIBS     eccodes_f90
   					 ${MULTIO_LIBRARIES}
   					 ${OpenMP_Fortran_LIBRARIES}
