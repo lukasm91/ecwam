@@ -38,9 +38,9 @@ ecbuild_generate_fortran_interfaces(
     INCLUDE_DIRS ecwam_intfb_includes
     PARALLEL ${FCM_PARALLEL}
 )
-install( DIRECTORY ${ecwam_intfb_includes}/
-         DESTINATION include/${ecwam}
-         COMPONENT interfaces )
+#install( DIRECTORY ${ecwam_intfb_includes}/
+#         DESTINATION include/${ecwam}
+#         COMPONENT interfaces )
 
 list( APPEND ecwam_srcs
   abort1.F90
@@ -446,7 +446,6 @@ ecbuild_add_library(
 ecwam_target_fortran_module_directory(
     TARGET ${ecwam}
     MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}
-    INSTALL_DIRECTORY module/${ecwam}
 )
 
 ecwam_target_compile_definitions_FILENAME( ${ecwam} )
@@ -531,7 +530,6 @@ if( HAVE_WAM_LOKI )
   ecwam_target_fortran_module_directory(
       TARGET ${ecwam}_idem
       MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}_idem
-      INSTALL_DIRECTORY module/${ecwam}_idem
   )
 
   ecwam_target_compile_definitions_FILENAME( ${ecwam}_idem )
@@ -575,7 +573,6 @@ if( HAVE_WAM_LOKI )
   ecwam_target_fortran_module_directory(
       TARGET ${ecwam}_idem_stack
       MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}_idem_stack
-      INSTALL_DIRECTORY module/${ecwam}_idem_stack
   )
 
   ecwam_target_compile_definitions_FILENAME( ${ecwam}_idem_stack )
@@ -626,7 +623,6 @@ if( HAVE_WAM_LOKI )
      ecwam_target_fortran_module_directory(
      	TARGET ${ecwam}_scc
      	MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}_scc
-     	INSTALL_DIRECTORY module/${ecwam}_scc
      )
      
      ecwam_target_compile_definitions_FILENAME( ${ecwam}_scc )
@@ -674,7 +670,6 @@ if( HAVE_WAM_LOKI )
      ecwam_target_fortran_module_directory(
      	TARGET ${ecwam}_scc_stack
      	MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}_scc_stack
-     	INSTALL_DIRECTORY module/${ecwam}_scc_stack
      )
      
      ecwam_target_compile_definitions_FILENAME( ${ecwam}_scc_stack )
@@ -724,7 +719,6 @@ if( HAVE_CUDA )
   ecwam_target_fortran_module_directory(
   	TARGET ${ecwam}_scc_cuf
   	MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/module/${ecwam}_scc_cuf
-  	INSTALL_DIRECTORY module/${ecwam}_scc_cuf
   )
   
   ecwam_target_compile_definitions_FILENAME( ${ecwam}_scc_cuf )
