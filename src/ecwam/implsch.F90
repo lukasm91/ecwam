@@ -270,8 +270,8 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',1,ZHOOK_HANDLE)
 
 
 END SUBROUTINE IMPLSCH_BEFORE_SNONLIN
-SUBROUTINE IMPLSCH_SNONLIN (KIJS, KIJL, FL1,                         &
- &                  WAVNUM, DEPTH, AKMEAN, FLD, SL)
+SUBROUTINE IMPLSCH_SNONLIN (KIJS, KIJL, FL1, FLD, SL,                &
+ &                  WAVNUM, DEPTH, AKMEAN)
 
 ! ----------------------------------------------------------------------
 

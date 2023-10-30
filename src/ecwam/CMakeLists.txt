@@ -291,6 +291,7 @@ list( APPEND ecwam_srcs
   yowubuf.F90
   yowunit.F90
   yowwami.F90
+  snonlin_cuda.cu
 )
 
 list(APPEND global_var_mods

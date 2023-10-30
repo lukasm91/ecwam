@@ -487,3 +487,56 @@
       IF (LHOOK) CALL DR_HOOK('SNONLIN',1,ZHOOK_HANDLE)
 
       END SUBROUTINE SNONLIN
+      SUBROUTINE SNONLIN_CUDA(KIJS, KIJL, NCHNK, FL1, FLD, SL, WAVNUM, DEPTH, AKMEAN)
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU, JWRO
+      USE YOWPARAM , ONLY : NANG, NFRE
+      USE YOWFRED  , ONLY : FR, ZPIFR
+      USE YOWINDN  , ONLY : IKP, IKP1, IKM, IKM1, &
+     &            K1W, K2W, K11W, K21W, AF11, &
+     &            FKLAP, FKLAP1, FKLAM, FKLAM1, &
+     &            DAL1, DAL2, &
+     &            MFRSTLW, MLSTHG, &
+     &            KFRH, INLCOEF, RNLCOEF
+      USE YOWSTAT  , ONLY : ISNONLIN
+      IMPLICIT NONE
+      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL, NCHNK
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT):: FLD, SL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM 
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: DEPTH, AKMEAN
+      INTERFACE
+        SUBROUTINE SNONLIN_CUDA_EXT(KIJS, KIJL, NCHNK, NANG, NFRE, FL1, FLD, SL, &
+                & WAVNUM, DEPTH, AKMEAN, &
+                & FR, ZPIFR, IKP, IKP1, IKM, IKM1, &
+                & K1W, K2W, K11W, K21W, AF11, &
+                & FKLAP, FKLAP1, FKLAM, FKLAM1, &
+                & DAL1, DAL2, &
+                & MFRSTLW, MLSTHG, &
+                & KFRH, INLCOEF, RNLCOEF, &
+                & ISNONLIN) BIND(C, NAME='snonlin_cuda_ext')
+          USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU, JWRO
+          INTEGER(KIND=JWIM), INTENT(IN), VALUE :: KIJS, KIJL, NCHNK, NANG, NFRE
+          REAL(KIND=JWRB), INTENT(IN) :: FL1(:,:,:)
+          REAL(KIND=JWRB), INTENT(INOUT):: FLD(:,:,:), SL(:,:,:)
+          REAL(KIND=JWRB), INTENT(IN) :: WAVNUM (:,:)
+          REAL(KIND=JWRB), INTENT(IN) :: DEPTH(:), AKMEAN(:)
+          REAL(KIND=JWRB), INTENT(IN) :: FR(:), ZPIFR(:)
+          INTEGER(KIND=JWIM), INTENT(IN) :: IKP(:), IKP1(:), IKM(:), IKM1(:), &
+                &  K1W(:,:), K2W(:,:), K11W(:,:), K21W(:,:), INLCOEF(:,:)
+          REAL(KIND=JWRB), INTENT(IN) :: AF11(:), FKLAP(:), FKLAP1(:), FKLAM(:), FKLAM1(:), &
+                &  RNLCOEF(:,:)
+          INTEGER(KIND=JWIM), INTENT(IN), VALUE :: MFRSTLW, MLSTHG, KFRH, &
+                &  ISNONLIN
+          REAL(KIND=JWRB), INTENT(IN), VALUE :: DAL1, DAL2
+        END SUBROUTINE
+      END INTERFACE
+      CALL SNONLIN_CUDA_EXT(KIJS, KIJL, NCHNK, NANG, NFRE, FL1, FLD, SL, &
+                & WAVNUM, DEPTH, AKMEAN, &
+                & FR, ZPIFR, IKP, IKP1, IKM, IKM1, &
+                & K1W, K2W, K11W, K21W, AF11, &
+                & FKLAP, FKLAP1, FKLAM, FKLAM1, &
+                & DAL1, DAL2, &
+                & MFRSTLW, MLSTHG, &
+                & KFRH, INLCOEF, RNLCOEF, &
+                & ISNONLIN)
+      END SUBROUTINE SNONLIN_CUDA

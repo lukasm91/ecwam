@@ -53,6 +53,7 @@ USE NVTX
 IMPLICIT NONE
 
 #include "implsch.intfb.h"
+#include "snonlin.intfb.h"
 #include "incdate.intfb.h"
 #include "newwind.intfb.h"
 #include "propag_wam.intfb.h"
@@ -155,12 +156,23 @@ REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
 
 
 LOGICAL, SAVE :: LLNEWFILE
+INTEGER, SAVE :: INONLIN_IMPL = -1
+CHARACTER(LEN=10) :: CNONLIN_IMPL
 
 DATA LLNEWFILE / .FALSE. /
 
 ! ----------------------------------------------------------------------
 
 IF (LHOOK) CALL DR_HOOK('WAMINTGR',0,ZHOOK_HANDLE)
+
+IF (INONLIN_IMPL == -1) THEN
+  CALL GET_ENVIRONMENT_VARIABLE("NVIDIA_NONLIN_IMPL", CNONLIN_IMPL)
+  IF (TRIM(CNONLIN_IMPL) == "1") THEN
+    INONLIN_IMPL = 1
+  ELSE
+    INONLIN_IMPL = 0
+  ENDIF
+ENDIF
 
 !*     PROPAGATION TIME
 !      ----------------
@@ -252,11 +264,16 @@ IF (CDATE >= CDTIMPNEXT) THEN
         & CIREDUC(:,:,:,ICHNK), &
         & SSOURCE(:,:,:,ICHNK))
       END DO
-      DO ICHNK=1,NCHNK
-        CALL IMPLSCH_SNONLIN(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), &
-        & WAVNUM_DPTR(:,:,ICHNK), DEPTH_DPTR(:,ICHNK), AKMEAN(:,ICHNK), &
-        & FLD(:,:,:,ICHNK), SL(:,:,:,ICHNK))
-      END DO
+      IF (INONLIN_IMPL == 0) THEN
+        DO ICHNK=1,NCHNK
+          CALL IMPLSCH_SNONLIN(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), &
+          & FLD(:,:,:,ICHNK), SL(:,:,:,ICHNK), &
+          & WAVNUM_DPTR(:,:,ICHNK), DEPTH_DPTR(:,ICHNK), AKMEAN(:,ICHNK))
+        END DO
+      ELSE
+        CALL SNONLIN_CUDA(1, NPROMA_WAM, NCHNK, FL1_DPTR, FLD, SL, WAVNUM_DPTR, &
+        & DEPTH_DPTR, AKMEAN)
+      ENDIF
       DO ICHNK=1,NCHNK
         CALL IMPLSCH_AFTER_SNONLIN(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), WAVNUM_DPTR(:,:,ICHNK), &
         & CINV_DPTR(:,:,ICHNK), &
