@@ -39,22 +39,16 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
         DevicePtr<real_t const, 1> af11, DevicePtr<real_t const, 1> fklap,
         DevicePtr<real_t const, 1> fklap1, DevicePtr<real_t const, 1> fklam,
         DevicePtr<real_t const, 1> fklam1, DevicePtr<int const, 2> inlcoef,
-        DevicePtr<real_t const, 2> rnlcoef,
-        // gmem variables (may be demoted ...)
-        DevicePtr<real_t, 3> enh, DevicePtr<real_t, 2> xnu,
-        DevicePtr<real_t, 2> sig_th, DevicePtr<real_t, 2> ftemp,
-        DevicePtr<real_t, 2> ad, DevicePtr<real_t, 2> delad,
-        DevicePtr<real_t, 2> delap, DevicePtr<real_t, 2> delam) {
+        DevicePtr<real_t const, 2> rnlcoef) {
 
   int const ichnk = blockIdx.x + 1;
   int const ij = threadIdx.x + kijs;
 
+  real_t enhfr;
   if (isnonlin == 0) {
-    real_t enhfr = max(0.75_r * depth(ij, ichnk) * akmean(ij, ichnk), 0.5_r);
+    enhfr = max(0.75_r * depth(ij, ichnk) * akmean(ij, ichnk), 0.5_r);
     enhfr = 1.0_r +
             (5.5_r / enhfr) * (1.0_r - .833_r * enhfr) * exp(-1.25_r * enhfr);
-    for (int mc = 1; mc <= mlsthg; ++mc)
-      enh(ij, mc, ichnk) = enhfr;
   } else {
     // TODO
     assert(false);
@@ -66,6 +60,14 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
   int const mfrlstfr = nfre - kfrh + mfr1stfr;
 
   for (int mc = 1; mc <= mlsthg; ++mc) {
+    real_t enh;
+    if (isnonlin == 0) {
+      enh = enhfr;
+    } else {
+      // TODO
+      assert(false);
+    }
+
     int const mp = ikp(mc - mfrstlw + 1);
     int const mp1 = ikp1(mc - mfrstlw + 1);
     int const mm = ikm(mc - mfrstlw + 1);
@@ -108,7 +110,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
     real_t const fklam12 = rnlcoef(24, mc);
     real_t const fklam22 = rnlcoef(25, mc);
 
-    ftemp(ij, ichnk) = af11(mc - mfrstlw + 1) * enh(ij, mc, ichnk);
+    real_t const ftemp = af11(mc - mfrstlw + 1) * enh;
 
     if (mc > mfr1stfr && mc < mfrlstfr) {
       //       the interactions for MC are all within the fully resolved
@@ -136,30 +138,30 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t fad1 = fij * (sap + sam);
           real_t const fad2 = fad1 - 2_r * sap * sam;
           fad1 = fad1 + fad2;
-          real_t const fcen = ftemp(ij, ichnk) * fij;
-          ad(ij, ichnk) = fad2 * fcen;
-          delad(ij, ichnk) = fad1 * ftemp(ij, ichnk);
-          delap(ij, ichnk) = (fij - 2_r * sam) * dal1 * fcen;
-          delam(ij, ichnk) = (fij - 2_r * sap) * dal2 * fcen;
+          real_t const fcen = ftemp * fij;
+          real_t const ad = fad2 * fcen;
+          real_t const delad = fad1 * ftemp;
+          real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
+          real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
-          sl(ij, k, mc, ichnk) -= 2_r * ad(ij, ichnk);
-          fld(ij, k, mc, ichnk) -= 2_r * delad(ij, ichnk);
-          sl(ij, k2, mm, ichnk) += ad(ij, ichnk) * fklamm1;
-          fld(ij, k2, mm, ichnk) += delam(ij, ichnk) * fklam12;
-          sl(ij, k21, mm, ichnk) += ad(ij, ichnk) * fklamm2;
-          fld(ij, k21, mm, ichnk) += delam(ij, ichnk) * fklam22;
-          sl(ij, k2, mm1, ichnk) += ad(ij, ichnk) * fklamma;
-          fld(ij, k2, mm1, ichnk) += delam(ij, ichnk) * fklama2;
-          sl(ij, k21, mm1, ichnk) += ad(ij, ichnk) * fklammb;
-          fld(ij, k21, mm1, ichnk) += delam(ij, ichnk) * fklamb2;
-          sl(ij, k1, mp, ichnk) += ad(ij, ichnk) * fklamp1;
-          fld(ij, k1, mp, ichnk) += delap(ij, ichnk) * fklap12;
-          sl(ij, k11, mp, ichnk) += ad(ij, ichnk) * fklamp2;
-          fld(ij, k11, mp, ichnk) += delap(ij, ichnk) * fklap22;
-          sl(ij, k1, mp1, ichnk) += ad(ij, ichnk) * fklampa;
-          fld(ij, k1, mp1, ichnk) += delap(ij, ichnk) * fklapa2;
-          sl(ij, k11, mp1, ichnk) += ad(ij, ichnk) * fklampb;
-          fld(ij, k11, mp1, ichnk) += delap(ij, ichnk) * fklapb2;
+          sl(ij, k, mc, ichnk) -= 2_r * ad;
+          fld(ij, k, mc, ichnk) -= 2_r * delad;
+          sl(ij, k2, mm, ichnk) += ad * fklamm1;
+          fld(ij, k2, mm, ichnk) += delam * fklam12;
+          sl(ij, k21, mm, ichnk) += ad * fklamm2;
+          fld(ij, k21, mm, ichnk) += delam * fklam22;
+          sl(ij, k2, mm1, ichnk) += ad * fklamma;
+          fld(ij, k2, mm1, ichnk) += delam * fklama2;
+          sl(ij, k21, mm1, ichnk) += ad * fklammb;
+          fld(ij, k21, mm1, ichnk) += delam * fklamb2;
+          sl(ij, k1, mp, ichnk) += ad * fklamp1;
+          fld(ij, k1, mp, ichnk) += delap * fklap12;
+          sl(ij, k11, mp, ichnk) += ad * fklamp2;
+          fld(ij, k11, mp, ichnk) += delap * fklap22;
+          sl(ij, k1, mp1, ichnk) += ad * fklampa;
+          fld(ij, k1, mp1, ichnk) += delap * fklapa2;
+          sl(ij, k11, mp1, ichnk) += ad * fklampb;
+          fld(ij, k11, mp1, ichnk) += delap * fklapb2;
         }
       }
     } else if (mc >= mfrlstfr) {
@@ -180,38 +182,38 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t fad1 = fij * (sap + sam);
           real_t const fad2 = fad1 - 2_r * sap * sam;
           fad1 = fad1 + fad2;
-          real_t const fcen = ftemp(ij, ichnk) * fij;
-          ad(ij, ichnk) = fad2 * fcen;
-          delad(ij, ichnk) = fad1 * ftemp(ij, ichnk);
-          delap(ij, ichnk) = (fij - 2_r * sam) * dal1 * fcen;
-          delam(ij, ichnk) = (fij - 2_r * sap) * dal2 * fcen;
+          real_t const fcen = ftemp * fij;
+          real_t const ad = fad2 * fcen;
+          real_t const delad = fad1 * ftemp;
+          real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
+          real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
-          sl(ij, k2, mm, ichnk) += ad(ij, ichnk) * fklamm1;
-          fld(ij, k2, mm, ichnk) += delam(ij, ichnk) * fklam12;
-          sl(ij, k21, mm, ichnk) += ad(ij, ichnk) * fklamm2;
-          fld(ij, k21, mm, ichnk) += delam(ij, ichnk) * fklam22;
+          sl(ij, k2, mm, ichnk) += ad * fklamm1;
+          fld(ij, k2, mm, ichnk) += delam * fklam12;
+          sl(ij, k21, mm, ichnk) += ad * fklamm2;
+          fld(ij, k21, mm, ichnk) += delam * fklam22;
 
           if (mm1 <= nfre) {
-            sl(ij, k2, mm1, ichnk) += ad(ij, ichnk) * fklamma;
-            fld(ij, k2, mm1, ichnk) += delam(ij, ichnk) * fklama2;
-            sl(ij, k21, mm1, ichnk) += ad(ij, ichnk) * fklammb;
-            fld(ij, k21, mm1, ichnk) += delam(ij, ichnk) * fklamb2;
+            sl(ij, k2, mm1, ichnk) += ad * fklamma;
+            fld(ij, k2, mm1, ichnk) += delam * fklama2;
+            sl(ij, k21, mm1, ichnk) += ad * fklammb;
+            fld(ij, k21, mm1, ichnk) += delam * fklamb2;
 
             if (mc <= nfre) {
-              sl(ij, k, mc, ichnk) -= 2_r * ad(ij, ichnk);
-              fld(ij, k, mc, ichnk) -= 2_r * delad(ij, ichnk);
+              sl(ij, k, mc, ichnk) -= 2_r * ad;
+              fld(ij, k, mc, ichnk) -= 2_r * delad;
 
               if (mp <= nfre) {
-                sl(ij, k1, mp, ichnk) += ad(ij, ichnk) * fklamp1;
-                fld(ij, k1, mp, ichnk) += delap(ij, ichnk) * fklap12;
-                sl(ij, k11, mp, ichnk) += ad(ij, ichnk) * fklamp2;
-                fld(ij, k11, mp, ichnk) += delap(ij, ichnk) * fklap22;
+                sl(ij, k1, mp, ichnk) += ad * fklamp1;
+                fld(ij, k1, mp, ichnk) += delap * fklap12;
+                sl(ij, k11, mp, ichnk) += ad * fklamp2;
+                fld(ij, k11, mp, ichnk) += delap * fklap22;
 
                 if (mp1 <= nfre) {
-                  sl(ij, k1, mp1, ichnk) += ad(ij, ichnk) * fklampa;
-                  fld(ij, k1, mp1, ichnk) += delap(ij, ichnk) * fklapa2;
-                  sl(ij, k11, mp1, ichnk) += ad(ij, ichnk) * fklampb;
-                  fld(ij, k11, mp1, ichnk) += delap(ij, ichnk) * fklapb2;
+                  sl(ij, k1, mp1, ichnk) += ad * fklampa;
+                  fld(ij, k1, mp1, ichnk) += delap * fklapa2;
+                  sl(ij, k11, mp1, ichnk) += ad * fklampb;
+                  fld(ij, k11, mp1, ichnk) += delap * fklapb2;
                 }
               }
             }
@@ -237,29 +239,29 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t fad1 = fij * (sap + sam);
           real_t const fad2 = fad1 - 2_r * sap * sam;
           fad1 = fad1 + fad2;
-          real_t const fcen = ftemp(ij, ichnk) * fij;
-          ad(ij, ichnk) = fad2 * fcen;
-          delad(ij, ichnk) = fad1 * ftemp(ij, ichnk);
-          delap(ij, ichnk) = (fij - 2_r * sam) * dal1 * fcen;
-          delam(ij, ichnk) = (fij - 2_r * sap) * dal2 * fcen;
+          real_t const fcen = ftemp * fij;
+          real_t const ad = fad2 * fcen;
+          real_t const delad = fad1 * ftemp;
+          real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
+          real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
           if (mm1 >= 1) {
-            sl(ij, k2, mm1, ichnk) += ad(ij, ichnk) * fklamma;
-            fld(ij, k2, mm1, ichnk) += delam(ij, ichnk) * fklama2;
-            sl(ij, k21, mm1, ichnk) += ad(ij, ichnk) * fklammb;
-            fld(ij, k21, mm1, ichnk) += delam(ij, ichnk) * fklamb2;
+            sl(ij, k2, mm1, ichnk) += ad * fklamma;
+            fld(ij, k2, mm1, ichnk) += delam * fklama2;
+            sl(ij, k21, mm1, ichnk) += ad * fklammb;
+            fld(ij, k21, mm1, ichnk) += delam * fklamb2;
           }
 
-          sl(ij, k, mc, ichnk) -= 2_r * ad(ij, ichnk);
-          fld(ij, k, mc, ichnk) -= 2_r * delad(ij, ichnk);
-          sl(ij, k1, mp, ichnk) += ad(ij, ichnk) * fklamp1;
-          fld(ij, k1, mp, ichnk) += delap(ij, ichnk) * fklap12;
-          sl(ij, k11, mp, ichnk) += ad(ij, ichnk) * fklamp2;
-          fld(ij, k11, mp, ichnk) += delap(ij, ichnk) * fklap22;
-          sl(ij, k1, mp1, ichnk) += ad(ij, ichnk) * fklampa;
-          fld(ij, k1, mp1, ichnk) += delap(ij, ichnk) * fklapa2;
-          sl(ij, k11, mp1, ichnk) += ad(ij, ichnk) * fklampb;
-          fld(ij, k11, mp1, ichnk) += delap(ij, ichnk) * fklapb2;
+          sl(ij, k, mc, ichnk) -= 2_r * ad;
+          fld(ij, k, mc, ichnk) -= 2_r * delad;
+          sl(ij, k1, mp, ichnk) += ad * fklamp1;
+          fld(ij, k1, mp, ichnk) += delap * fklap12;
+          sl(ij, k11, mp, ichnk) += ad * fklamp2;
+          fld(ij, k11, mp, ichnk) += delap * fklap22;
+          sl(ij, k1, mp1, ichnk) += ad * fklampa;
+          fld(ij, k1, mp1, ichnk) += delap * fklapa2;
+          sl(ij, k11, mp1, ichnk) += ad * fklampb;
+          fld(ij, k11, mp1, ichnk) += delap * fklapb2;
         }
       }
     }
@@ -306,23 +308,12 @@ void snonlin_cuda_ext(
   auto inlcoef = Field(inlcoef_ptr, ninl, mlsthg);
   auto rnlcoef = Field(rnlcoef_ptr, nrnl, mlsthg);
 
-  auto enh = Field(temporary<real_t>, nproma, mlsthg, nchnk);
-  auto xnu = Field(temporary<real_t>, nproma, nchnk);
-  auto sig_th = Field(temporary<real_t>, nproma, nchnk);
-  auto ftemp = Field(temporary<real_t>, nproma, nchnk);
-  auto ad = Field(temporary<real_t>, nproma, nchnk);
-  auto delad = Field(temporary<real_t>, nproma, nchnk);
-  auto delap = Field(temporary<real_t>, nproma, nchnk);
-  auto delam = Field(temporary<real_t>, nproma, nchnk);
-
   assert(isnonlin == 0);
   snonlin<<<nchnk, nproma>>>(
       kijs, kijl, isnonlin, mfrstlw, mlsthg, kfrh, nfre, nang, //
       dal1, dal2,                                              //
       fld, sl, fl1, wavnum, depth, akmean, fr, zpifr, ikp, ikp1, ikm, ikm1, k1w,
-      k2w, k11w, k21w, af11, fklap, fklap1, fklam, fklam1, inlcoef, rnlcoef,
-      // temporaries
-      enh, xnu, sig_th, ftemp, ad, delad, delap, delam);
+      k2w, k11w, k21w, af11, fklap, fklap1, fklam, fklam1, inlcoef, rnlcoef);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 }
