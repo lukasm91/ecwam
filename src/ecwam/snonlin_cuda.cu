@@ -116,8 +116,8 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
       //       the interactions for MC are all within the fully resolved
       //       spectral domain
 
-      for (int kh = 1; kh <= 2; ++kh) {
-        for (int k = 1; k <= nang; ++k) {
+      for (int k = 1; k <= nang; ++k) {
+        for (int kh = 1; kh <= 2; ++kh) {
           int const k1 = k1w(k, kh);
           int const k2 = k2w(k, kh);
           int const k11 = k11w(k, kh);
@@ -165,8 +165,8 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
         }
       }
     } else if (mc >= mfrlstfr) {
-      for (int kh = 1; kh <= 2; ++kh) {
-        for (int k = 1; k <= nang; ++k) {
+      for (int k = 1; k <= nang; ++k) {
+        for (int kh = 1; kh <= 2; ++kh) {
           int const k1 = k1w(k, kh);
           int const k2 = k2w(k, kh);
           int const k11 = k11w(k, kh);
@@ -222,8 +222,8 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
       }
 
     } else {
-      for (int kh = 1; kh <= 2; ++kh) {
-        for (int k = 1; k <= nang; ++k) {
+      for (int k = 1; k <= nang; ++k) {
+        for (int kh = 1; kh <= 2; ++kh) {
           int const k1 = k1w(k, kh);
           int const k2 = k2w(k, kh);
           int const k11 = k11w(k, kh);
