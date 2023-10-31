@@ -144,24 +144,62 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
           real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
-          sl(ij, k, mc, ichnk) -= 2_r * ad;
-          fld(ij, k, mc, ichnk) -= 2_r * delad;
-          sl(ij, k2, mm, ichnk) += ad * fklamm1;
-          fld(ij, k2, mm, ichnk) += delam * fklam12;
-          sl(ij, k21, mm, ichnk) += ad * fklamm2;
-          fld(ij, k21, mm, ichnk) += delam * fklam22;
-          sl(ij, k2, mm1, ichnk) += ad * fklamma;
-          fld(ij, k2, mm1, ichnk) += delam * fklama2;
-          sl(ij, k21, mm1, ichnk) += ad * fklammb;
-          fld(ij, k21, mm1, ichnk) += delam * fklamb2;
-          sl(ij, k1, mp, ichnk) += ad * fklamp1;
-          fld(ij, k1, mp, ichnk) += delap * fklap12;
-          sl(ij, k11, mp, ichnk) += ad * fklamp2;
-          fld(ij, k11, mp, ichnk) += delap * fklap22;
-          sl(ij, k1, mp1, ichnk) += ad * fklampa;
-          fld(ij, k1, mp1, ichnk) += delap * fklapa2;
-          sl(ij, k11, mp1, ichnk) += ad * fklampb;
-          fld(ij, k11, mp1, ichnk) += delap * fklapb2;
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 9>
+              sl_assign = {{
+                  {true, k, mc, -2_r * ad},
+                  {true, k2, mm, +ad * fklamm1},
+                  {true, k21, mm, +ad * fklamm2},
+                  {true, k2, mm1, +ad * fklamma},
+                  {true, k21, mm1, +ad * fklammb},
+                  {true, k1, mp, +ad * fklamp1},
+                  {true, k11, mp, +ad * fklamp2},
+                  {true, k1, mp1, +ad * fklampa},
+                  {true, k11, mp1, +ad * fklampb},
+              }};
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 9>
+              fld_assign = {{
+                  {true, k, mc, -2_r * delad},
+                  {true, k2, mm, +delam * fklam12},
+                  {true, k21, mm, +delam * fklam22},
+                  {true, k2, mm1, +delam * fklama2},
+                  {true, k21, mm1, +delam * fklamb2},
+                  {true, k1, mp, +delap * fklap12},
+                  {true, k11, mp, +delap * fklap22},
+                  {true, k1, mp1, +delap * fklapa2},
+                  {true, k11, mp1, +delap * fklapb2},
+              }};
+
+          int i;
+          real_t sl_values[9] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl_values[i] = sl(ij, i1, i2, ichnk) + v;
+            ++i;
+          }
+          real_t fld_values[9] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld_values[i] = fld(ij, i1, i2, ichnk) + v;
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl(ij, i1, i2, ichnk) = sl_values[i];
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld(ij, i1, i2, ichnk) = fld_values[i];
+            ++i;
+          }
         }
       }
     } else if (mc >= mfrlstfr) {
@@ -188,35 +226,61 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
           real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
-          sl(ij, k2, mm, ichnk) += ad * fklamm1;
-          fld(ij, k2, mm, ichnk) += delam * fklam12;
-          sl(ij, k21, mm, ichnk) += ad * fklamm2;
-          fld(ij, k21, mm, ichnk) += delam * fklam22;
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 9>
+              sl_assign = {{
+                  {true, k2, mm, +ad * fklamm1},
+                  {true, k21, mm, +ad * fklamm2},
+                  {mm1 <= nfre, k2, mm1, +ad * fklamma},
+                  {mm1 <= nfre, k21, mm1, +ad * fklammb},
+                  {mc <= nfre, k, mc, -2_r * ad},
+                  {mp <= nfre, k1, mp, +ad * fklamp1},
+                  {mp <= nfre, k11, mp, +ad * fklamp2},
+                  {mp1 <= nfre, k1, mp1, +ad * fklampa},
+                  {mp1 <= nfre, k11, mp1, +ad * fklampb},
+              }};
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 9>
+              fld_assign = {{
+                  {true, k2, mm, +delam * fklam12},
+                  {true, k21, mm, +delam * fklam22},
+                  {mm1 <= nfre, k2, mm1, +delam * fklama2},
+                  {mm1 <= nfre, k21, mm1, +delam * fklamb2},
+                  {mc <= nfre, k, mc, -2_r * delad},
+                  {mc <= nfre && mp <= nfre, k1, mp, +delap * fklap12},
+                  {mp <= nfre, k11, mp, +delap * fklap22},
+                  {mp1 <= nfre, k1, mp1, +delap * fklapa2},
+                  {mp1 <= nfre, k11, mp1, +delap * fklapb2},
+              }};
 
-          if (mm1 <= nfre) {
-            sl(ij, k2, mm1, ichnk) += ad * fklamma;
-            fld(ij, k2, mm1, ichnk) += delam * fklama2;
-            sl(ij, k21, mm1, ichnk) += ad * fklammb;
-            fld(ij, k21, mm1, ichnk) += delam * fklamb2;
-
-            if (mc <= nfre) {
-              sl(ij, k, mc, ichnk) -= 2_r * ad;
-              fld(ij, k, mc, ichnk) -= 2_r * delad;
-
-              if (mp <= nfre) {
-                sl(ij, k1, mp, ichnk) += ad * fklamp1;
-                fld(ij, k1, mp, ichnk) += delap * fklap12;
-                sl(ij, k11, mp, ichnk) += ad * fklamp2;
-                fld(ij, k11, mp, ichnk) += delap * fklap22;
-
-                if (mp1 <= nfre) {
-                  sl(ij, k1, mp1, ichnk) += ad * fklampa;
-                  fld(ij, k1, mp1, ichnk) += delap * fklapa2;
-                  sl(ij, k11, mp1, ichnk) += ad * fklampb;
-                  fld(ij, k11, mp1, ichnk) += delap * fklapb2;
-                }
-              }
-            }
+          int i;
+          real_t sl_values[9] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl_values[i] = sl(ij, i1, i2, ichnk) + v;
+            ++i;
+          }
+          real_t fld_values[9] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld_values[i] = fld(ij, i1, i2, ichnk) + v;
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl(ij, i1, i2, ichnk) = sl_values[i];
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld(ij, i1, i2, ichnk) = fld_values[i];
+            ++i;
           }
         }
       }
@@ -245,23 +309,57 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           real_t const delap = (fij - 2_r * sam) * dal1 * fcen;
           real_t const delam = (fij - 2_r * sap) * dal2 * fcen;
 
-          if (mm1 >= 1) {
-            sl(ij, k2, mm1, ichnk) += ad * fklamma;
-            fld(ij, k2, mm1, ichnk) += delam * fklama2;
-            sl(ij, k21, mm1, ichnk) += ad * fklammb;
-            fld(ij, k21, mm1, ichnk) += delam * fklamb2;
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 7>
+              sl_assign = {{
+                  {mm >= 1, k2, mm1, +ad * fklamma},
+                  {mm >= 1, k21, mm1, +ad * fklammb},
+                  {true, k, mc, -2_r * ad},
+                  {true, k1, mp, +ad * fklamp1},
+                  {true, k11, mp, +ad * fklamp2},
+                  {true, k1, mp1, +ad * fklampa},
+                  {true, k11, mp1, +ad * fklampb},
+              }};
+          cuda::std::array<cuda::std::tuple<bool, int, int, real_t>, 7>
+              fld_assign = {{
+                  {mm >= 1, k2, mm1, +delam * fklama2},
+                  {mm >= 1, k21, mm1, +delam * fklamb2},
+                  {true, k, mc, -2_r * delad},
+                  {true, k1, mp, +delap * fklap12},
+                  {true, k11, mp, +delap * fklap22},
+                  {true, k1, mp1, +delap * fklapa2},
+                  {true, k11, mp1, +delap * fklapb2},
+              }};
+          int i;
+          real_t sl_values[7] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl_values[i] = sl(ij, i1, i2, ichnk) + v;
+            ++i;
           }
-
-          sl(ij, k, mc, ichnk) -= 2_r * ad;
-          fld(ij, k, mc, ichnk) -= 2_r * delad;
-          sl(ij, k1, mp, ichnk) += ad * fklamp1;
-          fld(ij, k1, mp, ichnk) += delap * fklap12;
-          sl(ij, k11, mp, ichnk) += ad * fklamp2;
-          fld(ij, k11, mp, ichnk) += delap * fklap22;
-          sl(ij, k1, mp1, ichnk) += ad * fklampa;
-          fld(ij, k1, mp1, ichnk) += delap * fklapa2;
-          sl(ij, k11, mp1, ichnk) += ad * fklampb;
-          fld(ij, k11, mp1, ichnk) += delap * fklapb2;
+          real_t fld_values[7] = {};
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld_values[i] = fld(ij, i1, i2, ichnk) + v;
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : sl_assign) {
+            if (b)
+              sl(ij, i1, i2, ichnk) = sl_values[i];
+            ++i;
+          }
+          i = 0;
+#pragma unroll
+          for (auto &&[b, i1, i2, v] : fld_assign) {
+            if (b)
+              fld(ij, i1, i2, ichnk) = fld_values[i];
+            ++i;
+          }
         }
       }
     }
