@@ -135,34 +135,11 @@
             ENH(IJ,MC) = ENHFR(IJ)
           ENDDO
         ENDDO
-
-      CASE(1)      
-        DO MC=1,NFRE
-          DO IJ = KIJS, KIJL 
-            ENH(IJ,MC) = MAX(MIN(ENH_MAX,TRANSF(WAVNUM(IJ,MC),DEPTH(IJ))),ENH_MIN)
-          ENDDO
-        ENDDO
-        DO MC=NFRE+1,MLSTHG
-          XK = GM1*(ZPIFR(NFRE)*FRATIO**(MC-NFRE))**2
-          DO IJ = KIJS, KIJL 
-            ENH(IJ,MC) = MAX(MIN(ENH_MAX,TRANSF(XK,DEPTH(IJ))),ENH_MIN)
-          ENDDO
-        ENDDO
-
-      CASE(2)      
-        CALL PEAK_ANG(KIJS, KIJL, FL1, XNU, SIG_TH)
-        DO MC=1,NFRE
-          DO IJ = KIJS, KIJL 
-            ENH(IJ,MC) = TRANSF_SNL(WAVNUM(IJ,MC), DEPTH(IJ), XNU(IJ), SIG_TH(IJ))
-          ENDDO
-        ENDDO
-        DO MC=NFRE+1,MLSTHG
-          XK = GM1*(ZPIFR(NFRE)*FRATIO**(MC-NFRE))**2
-          DO IJ = KIJS, KIJL 
-            ENH(IJ,MC) = TRANSF_SNL(XK, DEPTH(IJ), XNU(IJ), SIG_TH(IJ))
-          ENDDO
-        ENDDO
       END SELECT
+
+      IF (.FALSE.) THEN
+        CALL PEAK_ANG(KIJS, KIJL, FL1, XNU, SIG_TH)
+      ENDIF
 
 
 !*    2. FREQUENCY LOOP.

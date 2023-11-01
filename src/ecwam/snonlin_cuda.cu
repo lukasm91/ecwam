@@ -122,6 +122,8 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
           int const k2 = k2w(k, kh);
           int const k11 = k11w(k, kh);
           int const k21 = k21w(k, kh);
+          assert(kh == 1 ? k1 == ((k11 + 1 - 1) % nang) + 1 : ((k1 + 1 - 1) % nang) + 1 == k11);
+          assert(kh == 2 ? k2 == ((k21 + 1 - 1) % nang) + 1 : ((k2 + 1 - 1) % nang) + 1 == k21);
 
           ///
           // 2.1.1.1 LOOP OVER GRIDPOINTS.. NONLINEAR TRANSFER AND
@@ -170,7 +172,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
               }};
 
           int i;
-          real_t sl_values[9] = {};
+          real_t sl_values[sl_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : sl_assign) {
@@ -178,7 +180,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
               sl_values[i] = sl(ij, i1, i2, ichnk) + v;
             ++i;
           }
-          real_t fld_values[9] = {};
+          real_t fld_values[fld_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : fld_assign) {
@@ -252,7 +254,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
               }};
 
           int i;
-          real_t sl_values[9] = {};
+          real_t sl_values[sl_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : sl_assign) {
@@ -260,7 +262,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
               sl_values[i] = sl(ij, i1, i2, ichnk) + v;
             ++i;
           }
-          real_t fld_values[9] = {};
+          real_t fld_values[fld_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : fld_assign) {
@@ -330,7 +332,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
                   {true, k11, mp1, +delap * fklapb2},
               }};
           int i;
-          real_t sl_values[7] = {};
+          real_t sl_values[sl_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : sl_assign) {
@@ -338,7 +340,7 @@ snonlin(int const kijs, int const kijl, int const isnonlin, int mfrstlw,
               sl_values[i] = sl(ij, i1, i2, ichnk) + v;
             ++i;
           }
-          real_t fld_values[7] = {};
+          real_t fld_values[fld_assign.size()] = {};
           i = 0;
 #pragma unroll
           for (auto &&[b, i1, i2, v] : fld_assign) {

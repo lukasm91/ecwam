@@ -293,6 +293,7 @@ list( APPEND ecwam_srcs
   yowwami.F90
   snonlin_cuda.cu
 )
+set_source_files_properties( snonlin_cuda.cu PROPERTIES COMPILE_OPTIONS --expt-relaxed-constexpr)
 
 list(APPEND global_var_mods
      yowaltas.F90
