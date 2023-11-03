@@ -1,509 +1,422 @@
 ! (C) Copyright 1989- ECMWF.
-! 
+!
 ! This software is licensed under the terms of the Apache Licence Version 2.0
 ! which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
 ! In applying this licence, ECMWF does not waive the privileges and immunities
 ! granted to it by virtue of its status as an intergovernmental organisation
 ! nor does it submit to any jurisdiction.
 !
-
-SUBROUTINE SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
- &                     WAVNUM, CINV, XK2CG,           &
- &                     WDWAVE, WSWAVE, UFRIC, Z0M,    &
- &                     COSWDIF, SINWDIF2,             &
- &                     RAORW, WSTAR, RNFAC,           &
- &                     FLD, SL, SPOS, XLLWS)
-! ----------------------------------------------------------------------
-
-!**** *SINPUT_ARD* - COMPUTATION OF INPUT SOURCE FUNCTION.
-
-
-!*    PURPOSE.
-!     ---------
-
-!       COMPUTE THE WIND INPUT SOURCE TRERM BASED ON ARDHUIN ET AL. 2010.
-
-!       COMPUTE INPUT SOURCE FUNCTION AND STORE ADDITIVELY INTO NET
-!       SOURCE FUNCTION ARRAY, ALSO COMPUTE FUNCTIONAL DERIVATIVE OF
-!       INPUT SOURCE FUNCTION.
-!
-!       GUSTINESS IS INTRODUCED FOLL0WING THE APPROACH OF JANSSEN(1986),
-!       USING A GAUSS-HERMITE APPROXIMATION SUGGESTED BY MILES(1997).
-!       IN THE PRESENT VERSION ONLY TWO HERMITE POLYNOMIALS ARE UTILISED
-!       IN THE EVALUATION OF THE PROBABILITY INTEGRAL. EXPLICITELY ONE THEN
-!       FINDS:
-!
-!             <GAMMA(X)> = 0.5*( GAMMA(X(1+SIG)) + GAMMA(X(1-SIG)) )
-!
-!       WHERE X IS THE FRICTION VELOCITY AND SIG IS THE RELATIVE GUSTINESS
-!       LEVEL.
-
-!**   INTERFACE.
-!     ----------
-
-!     *CALL* *SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1,
-!    &                    WAVNUM, CINV, XK2CG,
-!    &                    WSWAVE, WDWAVE, UFRIC, Z0M,
-!    &                    COSWDIF, SINWDIF2,
-!    &                    RAORW, WSTAR, RNFAC,
-!    &                    FLD, SL, SPOS, XLLWS)
-!         *NGST* - IF = 1 THEN NO GUSTINESS PARAMETERISATION
-!                - IF = 2 THEN GUSTINESS PARAMETERISATION
-!         *LLSNEG- IF TRUE THEN THE NEGATIVE SINPUT (SWELL DAMPING) WILL BE COMPUTED
-!         *KIJS* - INDEX OF FIRST GRIDPOINT.
-!         *KIJL* - INDEX OF LAST GRIDPOINT.
-!          *FL1* - SPECTRUM.
-!       *WAVNUM* - WAVE NUMBER.
-!         *CINV* - INVERSE PHASE VELOCITY.
-!       *XK2CG*  - (WAVNUM)**2 * GROUP SPPED.
-!       *WDWAVE* - WIND DIRECTION IN RADIANS IN OCEANOGRAPHIC
-!                  NOTATION (POINTING ANGLE OF WIND VECTOR,
-!                  CLOCKWISE FROM NORTH).
-!        *UFRIC* - NEW FRICTION VELOCITY IN M/S.
-!        *Z0M* - ROUGHNESS LENGTH IN M.
-!      *COSWDIF* - COS(TH(K)-WDWAVE(IJ))
-!     *SINWDIF2* - SIN(TH(K)-WDWAVE(IJ))**2
-!        *RAORW* - RATIO AIR DENSITY TO WATER DENSITY.
-!        *WSTAR* - FREE CONVECTION VELOCITY SCALE (M/S).
-!        *RNFAC* - WIND DEPENDENT FACTOR USED IN THE GROWTH RENORMALISATION.
-!          *FLD* - DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE.
-!           *SL* - TOTAL SOURCE FUNCTION ARRAY.
-!         *SPOS* - POSITIVE SOURCE FUNCTION ARRAY.
-!       *XLLWS*  - = 1 WHERE SINPUT IS POSITIVE
-
-!     METHOD.
-!     -------
-
-!       SEE REFERENCE.
-
-
-! ----------------------------------------------------------------------
-      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
-
-      USE YOWCOUP  , ONLY : LLCAPCHNK,LLNORMAGAM
-      USE YOWFRED  , ONLY : FR       ,TH       ,DFIM     ,COSTH  ,SINTH, ZPIFR, DELTH
-      USE YOWPARAM , ONLY : NANG     ,NFRE, NANG_PARAM
-      USE YOWPCONS , ONLY : G        ,GM1      ,EPSMIN, EPSUS, ZPI
-      USE YOWPHYS  , ONLY : ZALP     ,TAUWSHELTER, XKAPPA, BETAMAXOXKAPPA2,    &
-     &                      RN1_RN, &
-     &                      RNU      ,RNUM, &
-     &                      SWELLF   ,SWELLF2  ,SWELLF3  ,SWELLF4  , SWELLF5, &
-     &                      SWELLF6  ,SWELLF7  ,SWELLF7M1, Z0RAT   ,Z0TUBMAX , &
-     &                      ABMIN  ,ABMAX
-      USE YOWTEST  , ONLY : IU06
-      USE YOWTABL  , ONLY : IAB      ,SWELLFT
-
-      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
-
-! ----------------------------------------------------------------------
-
-      IMPLICIT NONE
-
-#include "wsigstar.intfb.h"
-
-      INTEGER(KIND=JWIM), INTENT(IN) :: NGST
-      LOGICAL, INTENT(IN) :: LLSNEG
-      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
-      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM, CINV, XK2CG
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: WDWAVE, WSWAVE, UFRIC, Z0M
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: RAORW, WSTAR, RNFAC
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(IN) :: COSWDIF, SINWDIF2
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(OUT) :: FLD, SL, SPOS
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(OUT) :: XLLWS
-
-
-      INTEGER(KIND=JWIM) :: IJ, K, M, IND, IGST
-
-      REAL(KIND=JWRB) :: CONSTN 
-      REAL(KIND=JWRB) :: AVG_GST, ABS_TAUWSHELTER 
-      REAL(KIND=JWRB) :: CONST1
-      REAL(KIND=JWRB) :: ZNZ
-      REAL(KIND=JWRB) :: X1, X2, ZLOG, ZLOG1, ZLOG2, ZLOG2X, XV1, XV2, ZBETA1, ZBETA2
-      REAL(KIND=JWRB) :: XI, X, DELI1, DELI2
-      REAL(KIND=JWRB) :: FU, FUD, NU_AIR,SMOOTH, HFTSWELLF6, Z0TUB
-      REAL(KIND=JWRB) :: FAC_NU_AIR, FACM1_NU_AIR
-      REAL(KIND=JWRB) :: ARG, DELABM1
-      REAL(KIND=JWRB) :: TAUPX, TAUPY
-      REAL(KIND=JWRB) :: DSTAB2
-      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB) :: CONST, SIG, SIG2, COEF, COEF5, DFIM_SIG2
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: CONSTF, CONST11, CONST22
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: Z0VIS, Z0NOZ, FWW
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: PVISC, PTURB
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: ZCN
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: SIG_N, UORBT, AORB, TEMP, RE, RE_C, ZORB
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: CNSN, SUMF, SUMFSIN2
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: CSTRNFAC
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: FLP_AVG, SLP_AVG
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: ROGOROAIR, AIRD_PVISC
-      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: XSTRESS, YSTRESS, FLP, SLP
-      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: USG2, TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
-      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: UCNZALPD
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: XNGAMCONST
-      REAL(KIND=JWRB), DIMENSION(KIJL,2) :: GAMNORMA ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: DSTAB1, TEMP1, TEMP2
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM,2) :: GAM0, DSTAB
-      REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM) :: COSLP
-
-      LOGICAL :: LTAUWSHELTER
-! ----------------------------------------------------------------------
-
-IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',0,ZHOOK_HANDLE)
-
-      AVG_GST = 1.0_JWRB/NGST
-      CONST1  = BETAMAXOXKAPPA2
-      CONSTN = DELTH/(XKAPPA*ZPI) 
-
-      ABS_TAUWSHELTER=ABS(TAUWSHELTER)
-      IF (ABS_TAUWSHELTER == 0.0_JWRB ) THEN
-        LTAUWSHELTER = .FALSE.
-      ELSE
-        LTAUWSHELTER = .TRUE.
-      ENDIF
-
-
-!     ESTIMATE THE STANDARD DEVIATION OF GUSTINESS.
-      IF (NGST > 1) CALL WSIGSTAR (KIJS, KIJL, WSWAVE, UFRIC, Z0M, WSTAR, SIG_N)
-
-
+  SUBROUTINE SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, WAVNUM, CINV, XK2CG, WDWAVE, WSWAVE, UFRIC, Z0M, COSWDIF,  &
+  & SINWDIF2, RAORW, WSTAR, RNFAC, FLD, SL, SPOS, XLLWS)
+    ! ----------------------------------------------------------------------
+    
+    !**** *SINPUT_ARD* - COMPUTATION OF INPUT SOURCE FUNCTION.
+    
+    
+    !*    PURPOSE.
+    !     ---------
+    
+    !       COMPUTE THE WIND INPUT SOURCE TRERM BASED ON ARDHUIN ET AL. 2010.
+    
+    !       COMPUTE INPUT SOURCE FUNCTION AND STORE ADDITIVELY INTO NET
+    !       SOURCE FUNCTION ARRAY, ALSO COMPUTE FUNCTIONAL DERIVATIVE OF
+    !       INPUT SOURCE FUNCTION.
+    !
+    !       GUSTINESS IS INTRODUCED FOLL0WING THE APPROACH OF JANSSEN(1986),
+    !       USING A GAUSS-HERMITE APPROXIMATION SUGGESTED BY MILES(1997).
+    !       IN THE PRESENT VERSION ONLY TWO HERMITE POLYNOMIALS ARE UTILISED
+    !       IN THE EVALUATION OF THE PROBABILITY INTEGRAL. EXPLICITELY ONE THEN
+    !       FINDS:
+    !
+    !             <GAMMA(X)> = 0.5*( GAMMA(X(1+SIG)) + GAMMA(X(1-SIG)) )
+    !
+    !       WHERE X IS THE FRICTION VELOCITY AND SIG IS THE RELATIVE GUSTINESS
+    !       LEVEL.
+    
+    !**   INTERFACE.
+    !     ----------
+    
+    !     *CALL* *SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1,
+    !    &                    WAVNUM, CINV, XK2CG,
+    !    &                    WSWAVE, WDWAVE, UFRIC, Z0M,
+    !    &                    COSWDIF, SINWDIF2,
+    !    &                    RAORW, WSTAR, RNFAC,
+    !    &                    FLD, SL, SPOS, XLLWS)
+    !         *NGST* - IF = 1 THEN NO GUSTINESS PARAMETERISATION
+    !                - IF = 2 THEN GUSTINESS PARAMETERISATION
+    !         *LLSNEG- IF TRUE THEN THE NEGATIVE SINPUT (SWELL DAMPING) WILL BE COMPUTED
+    !         *KIJS* - INDEX OF FIRST GRIDPOINT.
+    !         *KIJL* - INDEX OF LAST GRIDPOINT.
+    !          *FL1* - SPECTRUM.
+    !       *WAVNUM* - WAVE NUMBER.
+    !         *CINV* - INVERSE PHASE VELOCITY.
+    !       *XK2CG*  - (WAVNUM)**2 * GROUP SPPED.
+    !       *WDWAVE* - WIND DIRECTION IN RADIANS IN OCEANOGRAPHIC
+    !                  NOTATION (POINTING ANGLE OF WIND VECTOR,
+    !                  CLOCKWISE FROM NORTH).
+    !        *UFRIC* - NEW FRICTION VELOCITY IN M/S.
+    !        *Z0M* - ROUGHNESS LENGTH IN M.
+    !      *COSWDIF* - COS(TH(K)-WDWAVE(IJ))
+    !     *SINWDIF2* - SIN(TH(K)-WDWAVE(IJ))**2
+    !        *RAORW* - RATIO AIR DENSITY TO WATER DENSITY.
+    !        *WSTAR* - FREE CONVECTION VELOCITY SCALE (M/S).
+    !        *RNFAC* - WIND DEPENDENT FACTOR USED IN THE GROWTH RENORMALISATION.
+    !          *FLD* - DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE.
+    !           *SL* - TOTAL SOURCE FUNCTION ARRAY.
+    !         *SPOS* - POSITIVE SOURCE FUNCTION ARRAY.
+    !       *XLLWS*  - = 1 WHERE SINPUT IS POSITIVE
+    
+    !     METHOD.
+    !     -------
+    
+    !       SEE REFERENCE.
+    
+    
+    ! ----------------------------------------------------------------------
+    USE PARKIND_WAVE, ONLY: JWIM, JWRB, JWRU
+    
+    USE YOWCOUP, ONLY: LLCAPCHNK, LLNORMAGAM
+    USE YOWFRED, ONLY: FR, TH, DFIM, COSTH, SINTH, ZPIFR, DELTH
+    USE YOWPARAM, ONLY: NANG, NFRE, NANG_PARAM
+    USE YOWPCONS, ONLY: G, GM1, EPSMIN, EPSUS, ZPI
+    USE YOWPHYS, ONLY: ZALP, TAUWSHELTER, XKAPPA, BETAMAXOXKAPPA2, RN1_RN, RNU, RNUM, SWELLF, SWELLF2, SWELLF3, SWELLF4,  &
+    & SWELLF5, SWELLF6, SWELLF7, SWELLF7M1, Z0RAT, Z0TUBMAX, ABMIN, ABMAX
+    USE YOWTEST, ONLY: IU06
+    USE YOWTABL, ONLY: IAB, SWELLFT
+    
+    
+    ! ----------------------------------------------------------------------
+    
+    IMPLICIT NONE
+    #include "wsigstar.intfb.h"
+    INTEGER(KIND=JWIM), INTENT(IN) :: NGST
+    LOGICAL, INTENT(IN) :: LLSNEG
+    INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL
+    REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL, NANG, NFRE) :: FL1
+    REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL, NFRE) :: WAVNUM, CINV, XK2CG
+    REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL) :: WDWAVE, WSWAVE, UFRIC, Z0M
+    REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL) :: RAORW, WSTAR, RNFAC
+    REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL, NANG) :: COSWDIF, SINWDIF2
+    REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, NFRE) :: FLD, SL, SPOS
+    REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, NFRE) :: XLLWS
+    
+    
+    INTEGER(KIND=JWIM) :: IJ, K, M, IND, IGST
+    
+    REAL(KIND=JWRB) :: CONSTN
+    REAL(KIND=JWRB) :: AVG_GST, ABS_TAUWSHELTER
+    REAL(KIND=JWRB) :: CONST1
+    REAL(KIND=JWRB) :: ZNZ
+    REAL(KIND=JWRB) :: X1, X2, ZLOG, ZLOG1, ZLOG2, ZLOG2X, XV1, XV2, ZBETA1, ZBETA2
+    REAL(KIND=JWRB) :: XI, X, DELI1, DELI2
+    REAL(KIND=JWRB) :: FU, FUD, NU_AIR, SMOOTH, HFTSWELLF6, Z0TUB
+    REAL(KIND=JWRB) :: FAC_NU_AIR, FACM1_NU_AIR
+    REAL(KIND=JWRB) :: ARG, DELABM1
+    REAL(KIND=JWRB) :: TAUPX, TAUPY
+    REAL(KIND=JWRB) :: DSTAB2
+    REAL(KIND=JWRB) :: CONST, SIG, SIG2, COEF, COEF5, DFIM_SIG2
+    REAL(KIND=JWRB) :: CONSTF, CONST11, CONST22
+    REAL(KIND=JWRB) :: Z0VIS, Z0NOZ, FWW
+    REAL(KIND=JWRB) :: PVISC, PTURB
+    REAL(KIND=JWRB) :: ZCN
+    REAL(KIND=JWRB), DIMENSION(KIJL) :: SIG_N
+    REAL(KIND=JWRB) :: UORBT
+    REAL(KIND=JWRB) :: AORB
+    REAL(KIND=JWRB) :: TEMP
+    REAL(KIND=JWRB) :: RE
+    REAL(KIND=JWRB) :: RE_C
+    REAL(KIND=JWRB) :: ZORB
+    REAL(KIND=JWRB) :: CNSN, SUMF, SUMFSIN2
+    REAL(KIND=JWRB) :: CSTRNFAC
+    REAL(KIND=JWRB) :: FLP_AVG, SLP_AVG
+    REAL(KIND=JWRB) :: ROGOROAIR, AIRD_PVISC
+    REAL(KIND=JWRB), DIMENSION(2) :: XSTRESS, YSTRESS, FLP, SLP
+    REAL(KIND=JWRB), DIMENSION(2) :: USG2, TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
+    REAL(KIND=JWRB), DIMENSION(2) :: UCNZALPD
+    REAL(KIND=JWRB) :: XNGAMCONST
+    REAL(KIND=JWRB), DIMENSION(2) :: GAMNORMA    ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
+    REAL(KIND=JWRB) :: DSTAB1, TEMP1, TEMP2
+    REAL(KIND=JWRB), DIMENSION(NANG_PARAM, 2) :: GAM0, DSTAB
+    REAL(KIND=JWRB), DIMENSION(NANG_PARAM) :: COSLP
+    
+    LOGICAL :: LTAUWSHELTER
+    ! ----------------------------------------------------------------------
+    
+    
+    AVG_GST = 1.0_JWRB / NGST
+    CONST1 = BETAMAXOXKAPPA2
+    CONSTN = DELTH / (XKAPPA*ZPI)
+    
+    ABS_TAUWSHELTER = ABS(TAUWSHELTER)
+    IF (ABS_TAUWSHELTER == 0.0_JWRB) THEN
+      LTAUWSHELTER = .false.
+    ELSE
+      LTAUWSHELTER = .true.
+    END IF
+    
+    
+    !     ESTIMATE THE STANDARD DEVIATION OF GUSTINESS.
+    IF (NGST > 1) CALL WSIGSTAR(KIJS, KIJL, WSWAVE, UFRIC, Z0M, WSTAR, SIG_N)
+    
+    
+    
+    DO IJ=KIJS,KIJL
       IF (LLNORMAGAM) THEN
-        DO IJ=KIJS,KIJL
-          CSTRNFAC(IJ) = CONSTN * RNFAC(IJ) / RAORW(IJ)
-        ENDDO
-      ENDIF
-! ----------------------------------------------------------------------
-
+        CSTRNFAC = CONSTN*RNFAC(IJ) / RAORW(IJ)
+      END IF
+      ! ----------------------------------------------------------------------
+      
       IF (LLSNEG) THEN
-!!!!  only for the negative sinput
-         NU_AIR = RNU
-         FACM1_NU_AIR = 4.0_JWRB/NU_AIR
-
-         FAC_NU_AIR = RNUM
-
-         FU=ABS(SWELLF3)
-         FUD=SWELLF2
-         DELABM1= REAL(IAB)/(ABMAX-ABMIN)
-
-
-!       computation of Uorb and Aorb
-        DO IJ=KIJS,KIJL
-          UORBT(IJ) = EPSMIN 
-          AORB(IJ) = EPSMIN
-        ENDDO
-
+        !!!!  only for the negative sinput
+        NU_AIR = RNU
+        FACM1_NU_AIR = 4.0_JWRB / NU_AIR
+        
+        FAC_NU_AIR = RNUM
+        
+        FU = ABS(SWELLF3)
+        FUD = SWELLF2
+        DELABM1 = REAL(IAB) / (ABMAX - ABMIN)
+        
+        
+        !       computation of Uorb and Aorb
+        UORBT = EPSMIN
+        AORB = EPSMIN
+        
         DO M=1,NFRE
           SIG = ZPIFR(M)
           SIG2 = SIG**2
-          DFIM_SIG2=DFIM(M)*SIG2
-
-          K=1
-          DO IJ=KIJS,KIJL
-            TEMP(IJ) = FL1(IJ,K,M)
-          ENDDO
+          DFIM_SIG2 = DFIM(M)*SIG2
+          
+          K = 1
+          TEMP = FL1(IJ, K, M)
           DO K=2,NANG
-            DO IJ=KIJS,KIJL
-              TEMP(IJ) = TEMP(IJ)+FL1(IJ,K,M)
-            ENDDO
-          ENDDO
-
-          DO IJ=KIJS,KIJL
-            UORBT(IJ) = UORBT(IJ)+DFIM_SIG2*TEMP(IJ)
-            AORB(IJ) = AORB(IJ)+DFIM(M)*TEMP(IJ)
-          ENDDO
-        ENDDO
-
-        DO IJ=KIJS,KIJL
-          UORBT(IJ) = 2.0_JWRB*SQRT(UORBT(IJ))  ! this is the significant orbital amplitude
-          AORB(IJ)  = 2.0_JWRB*SQRT(AORB(IJ))   ! this 1/2 Hs
-          RE(IJ)    = FACM1_NU_AIR*UORBT(IJ)*AORB(IJ) ! this is the Reynolds number 
-          Z0VIS(IJ) = FAC_NU_AIR/MAX(UFRIC(IJ),0.0001_JWRB)
-          Z0TUB = Z0RAT*MIN(Z0TUBMAX,Z0M(IJ))
-          Z0NOZ(IJ) = MAX(Z0VIS(IJ),Z0TUB)
-          ZORB(IJ)  = AORB(IJ)/Z0NOZ(IJ)
-
-!         compute fww
-          XI=(LOG10(MAX(ZORB(IJ),3.0_JWRB))-ABMIN)*DELABM1
-          IND  = MIN (IAB-1, INT(XI))
-          DELI1= MIN (1.0_JWRB ,XI-REAL(IND,JWRB))
-          DELI2= 1.0_JWRB - DELI1
-          FWW(IJ)= SWELLFT(IND)*DELI2+SWELLFT(IND+1)*DELI1
-          TEMP2(IJ) = FWW(IJ)*UORBT(IJ)
-        ENDDO
-
-!       Define the critical Reynolds number
-        IF ( SWELLF6 == 1.0_JWRB) THEN
-          DO IJ=KIJS,KIJL
-            RE_C(IJ) = SWELLF4
-          ENDDO
+            TEMP = TEMP + FL1(IJ, K, M)
+          END DO
+          
+          UORBT = UORBT + DFIM_SIG2*TEMP
+          AORB = AORB + DFIM(M)*TEMP
+        END DO
+        
+        UORBT = 2.0_JWRB*SQRT(UORBT)          ! this is the significant orbital amplitude
+        AORB = 2.0_JWRB*SQRT(AORB)          ! this 1/2 Hs
+        RE = FACM1_NU_AIR*UORBT*AORB          ! this is the Reynolds number
+        Z0VIS = FAC_NU_AIR / MAX(UFRIC(IJ), 0.0001_JWRB)
+        Z0TUB = Z0RAT*MIN(Z0TUBMAX, Z0M(IJ))
+        Z0NOZ = MAX(Z0VIS, Z0TUB)
+        ZORB = AORB / Z0NOZ
+        
+        !         compute fww
+        XI = (LOG10(MAX(ZORB, 3.0_JWRB)) - ABMIN)*DELABM1
+        IND = MIN(IAB - 1, INT(XI))
+        DELI1 = MIN(1.0_JWRB, XI - REAL(IND, kind=JWRB))
+        DELI2 = 1.0_JWRB - DELI1
+        FWW = SWELLFT(IND)*DELI2 + SWELLFT(IND + 1)*DELI1
+        TEMP2 = FWW*UORBT
+        
+        !       Define the critical Reynolds number
+        IF (SWELLF6 == 1.0_JWRB) THEN
+          RE_C = SWELLF4
         ELSE
-          HFTSWELLF6=1.0_JWRB-SWELLF6
-          DO IJ=KIJS,KIJL
-            RE_C(IJ) = SWELLF4*(2.0_JWRB/AORB(IJ))**HFTSWELLF6
-          ENDDO
-        ENDIF
-
-!       Swell damping weight between viscous and turbulent boundary layer
+          HFTSWELLF6 = 1.0_JWRB - SWELLF6
+          RE_C = SWELLF4*(2.0_JWRB / AORB)**HFTSWELLF6
+        END IF
+        
+        !       Swell damping weight between viscous and turbulent boundary layer
         IF (SWELLF7 > 0.0_JWRB) THEN
-          DO IJ=KIJS,KIJL
-            SMOOTH=0.5_JWRB*TANH((RE(IJ)-RE_C(IJ))*SWELLF7M1)
-            PTURB(IJ)=0.5_JWRB+SMOOTH
-            PVISC(IJ)=0.5_JWRB-SMOOTH
-          ENDDO
+          SMOOTH = 0.5_JWRB*TANH((RE - RE_C)*SWELLF7M1)
+          PTURB = 0.5_JWRB + SMOOTH
+          PVISC = 0.5_JWRB - SMOOTH
         ELSE
-          DO IJ=KIJS,KIJL
-            IF (RE(IJ) <= RE_C(IJ)) THEN
-              PTURB(IJ)=0.0_JWRB
-              PVISC(IJ)=0.5_JWRB
-            ELSE
-              PTURB(IJ)=0.5_JWRB
-              PVISC(IJ)=0.0_JWRB
-            ENDIF
-          ENDDO
-        ENDIF
-
-        DO IJ=KIJS,KIJL
-          AIRD_PVISC(IJ) = PVISC(IJ)*RAORW(IJ)
-        ENDDO
-
-      ENDIF
-
-
-
-! Initialisation
-
+          IF (RE <= RE_C) THEN
+            PTURB = 0.0_JWRB
+            PVISC = 0.5_JWRB
+          ELSE
+            PTURB = 0.5_JWRB
+            PVISC = 0.0_JWRB
+          END IF
+        END IF
+        
+        AIRD_PVISC = PVISC*RAORW(IJ)
+        
+      END IF
+      
+      
+      
+      ! Initialisation
+      
       IF (NGST == 1) THEN
-        DO IJ=KIJS,KIJL
-          USTP(IJ,1) = UFRIC(IJ)
-        ENDDO
+        USTP(1) = UFRIC(IJ)
       ELSE IF (NGST == 2) THEN
-        DO IJ=KIJS,KIJL
-          USTP(IJ,1) = UFRIC(IJ)*(1.0_JWRB+SIG_N(IJ))
-          USTP(IJ,2) = UFRIC(IJ)*(1.0_JWRB-SIG_N(IJ))
-        ENDDO
-      ELSE
-         WRITE (IU06,*) '**************************************'
-         WRITE (IU06,*) '*    FATAL ERROR                     *'
-         WRITE (IU06,*) '*    ===========                     *'
-         WRITE (IU06,*) '* IN SINPUT_ARD: NGST > 2            *'
-         WRITE (IU06,*) '* NGST = ', NGST
-         WRITE (IU06,*) '* PROGRAM ABORTS.   PROGRAM ABORTS.  *'
-         WRITE (IU06,*) '*                                    *'
-         WRITE (IU06,*) '**************************************'
-         CALL ABORT1
-      ENDIF
-
+        USTP(1) = UFRIC(IJ)*(1.0_JWRB + SIG_N(IJ))
+        USTP(2) = UFRIC(IJ)*(1.0_JWRB - SIG_N(IJ))
+      END IF
+      
       DO IGST=1,NGST
-        DO IJ=KIJS,KIJL
-          USTPM1(IJ,IGST) = 1.0_JWRB/MAX(USTP(IJ,IGST),EPSUS)
-        ENDDO
-      ENDDO
-
+        USTPM1(IGST) = 1.0_JWRB / MAX(USTP(IGST), EPSUS)
+      END DO
+      
       IF (LTAUWSHELTER) THEN
         DO IGST=1,NGST
-          DO IJ=KIJS,KIJL
-            XSTRESS(IJ,IGST)=0.0_JWRB
-            YSTRESS(IJ,IGST)=0.0_JWRB
-            USG2(IJ,IGST)=USTP(IJ,IGST)**2
-            TAUX(IJ,IGST)=USG2(IJ,IGST)*SIN(WDWAVE(IJ))
-            TAUY(IJ,IGST)=USG2(IJ,IGST)*COS(WDWAVE(IJ))
-          ENDDO
-        ENDDO
-
-        DO IJ=KIJS,KIJL
-          ROGOROAIR(IJ) = G/RAORW(IJ)
-        ENDDO
-
+          XSTRESS(IGST) = 0.0_JWRB
+          YSTRESS(IGST) = 0.0_JWRB
+          USG2(IGST) = USTP(IGST)**2
+          TAUX(IGST) = USG2(IGST)*SIN(WDWAVE(IJ))
+          TAUY(IGST) = USG2(IGST)*COS(WDWAVE(IJ))
+        END DO
+        
+        ROGOROAIR = G / RAORW(IJ)
+        
       ELSE
         DO K=1,NANG
-          DO IJ=KIJS,KIJL
-            COSLP(IJ,K) = COSWDIF(IJ,K)
-          ENDDO
-        ENDDO
-      ENDIF
-
-
-!*    2. MAIN LOOP OVER FREQUENCIES.
-!        ---------------------------
-
-      IF ( .NOT. LLNORMAGAM) THEN
-        GAMNORMA(KIJS:KIJL,:) = 1.0_JWRB
-      ENDIF
-
-      IF ( .NOT. LLSNEG) THEN
-        DSTAB(KIJS:KIJL,:,:) = 0.0_JWRB
-      ENDIF
-
+          COSLP(K) = COSWDIF(IJ, K)
+        END DO
+      END IF
+      
+      
+      !*    2. MAIN LOOP OVER FREQUENCIES.
+      !        ---------------------------
+      
+      IF (.not.LLNORMAGAM) THEN
+        GAMNORMA(:) = 1.0_JWRB
+      END IF
+      
+      IF (.not.LLSNEG) THEN
+        DSTAB(:, :) = 0.0_JWRB
+      END IF
+      
       DO M=1,NFRE
         SIG = ZPIFR(M)
         SIG2 = SIG**2
-        CONST=SIG*CONST1
-
-        COEF =-SWELLF*16._JWRB*SIG2/G
-        COEF5=-SWELLF5*2._JWRB*SQRT(2._JWRB*NU_AIR*SIG)
-
+        CONST = SIG*CONST1
+        
+        COEF = -SWELLF*16._JWRB*SIG2 / G
+        COEF5 = -SWELLF5*2._JWRB*SQRT(2._JWRB*NU_AIR*SIG)
+        
         IF (LTAUWSHELTER) THEN
           DO IGST=1,NGST
-            DO IJ=KIJS,KIJL
-              TAUPX=TAUX(IJ,IGST)-ABS_TAUWSHELTER*XSTRESS(IJ,IGST)
-              TAUPY=TAUY(IJ,IGST)-ABS_TAUWSHELTER*YSTRESS(IJ,IGST)
-              USDIRP(IJ,IGST)=ATAN2(TAUPX,TAUPY)
-              USTP(IJ,IGST)=(TAUPX**2+TAUPY**2)**0.25_JWRB
-              USTPM1(IJ,IGST)=1.0_JWRB/MAX(USTP(IJ,IGST),EPSUS)
-            ENDDO
-          ENDDO
-
-          DO IJ=KIJS,KIJL
-            CONSTF(IJ) = ROGOROAIR(IJ)*CINV(IJ,M)*DFIM(M)
-          ENDDO
-        ENDIF
-
-
-!*      PRECALCULATE FREQUENCY DEPENDENCE.
-!       ----------------------------------
-
+            TAUPX = TAUX(IGST) - ABS_TAUWSHELTER*XSTRESS(IGST)
+            TAUPY = TAUY(IGST) - ABS_TAUWSHELTER*YSTRESS(IGST)
+            USDIRP(IGST) = ATAN2(TAUPX, TAUPY)
+            USTP(IGST) = (TAUPX**2 + TAUPY**2)**0.25_JWRB
+            USTPM1(IGST) = 1.0_JWRB / MAX(USTP(IGST), EPSUS)
+          END DO
+          
+          CONSTF = ROGOROAIR*CINV(IJ, M)*DFIM(M)
+        END IF
+        
+        
+        !*      PRECALCULATE FREQUENCY DEPENDENCE.
+        !       ----------------------------------
+        
         DO IGST=1,NGST
-          DO IJ=KIJS,KIJL
-            UCN(IJ,IGST) = USTP(IJ,IGST)*CINV(IJ,M)
-            UCNZALPD(IJ,IGST) = XKAPPA/(UCN(IJ,IGST) + ZALP)
-          ENDDO
-        ENDDO
-        DO IJ=KIJS,KIJL
-          ZCN(IJ) = LOG(WAVNUM(IJ,M)*Z0M(IJ))
-          CNSN(IJ) = CONST*RAORW(IJ)
-        ENDDO
-
-!*    2.1 LOOP OVER DIRECTIONS.
-!         ---------------------
-
+          UCN(IGST) = USTP(IGST)*CINV(IJ, M)
+          UCNZALPD(IGST) = XKAPPA / (UCN(IGST) + ZALP)
+        END DO
+        ZCN = LOG(WAVNUM(IJ, M)*Z0M(IJ))
+        CNSN = CONST*RAORW(IJ)
+        
+        !*    2.1 LOOP OVER DIRECTIONS.
+        !         ---------------------
+        
         DO K=1,NANG
-          DO IJ=KIJS,KIJL
-            XLLWS(IJ,K,M)=0.0_JWRB
-          ENDDO
-        ENDDO
-
+          XLLWS(IJ, K, M) = 0.0_JWRB
+        END DO
+        
         IF (LLNORMAGAM) THEN
-          DO IJ=KIJS,KIJL
-            XNGAMCONST(IJ) = CSTRNFAC(IJ)*XK2CG(IJ,M)
-          ENDDO
-        ENDIF
-
+          XNGAMCONST = CSTRNFAC*XK2CG(IJ, M)
+        END IF
+        
         IF (LLSNEG) THEN
-!       SWELL DAMPING:
-          DO IJ=KIJS,KIJL
-            DSTAB1(IJ) = COEF5*AIRD_PVISC(IJ)*WAVNUM(IJ,M)
-            TEMP1(IJ) = COEF*RAORW(IJ)
-          ENDDO
-        ENDIF
-
+          !       SWELL DAMPING:
+          DSTAB1 = COEF5*AIRD_PVISC*WAVNUM(IJ, M)
+          TEMP1 = COEF*RAORW(IJ)
+        END IF
+        
         DO IGST=1,NGST
           DO K=1,NANG
-            IF(LTAUWSHELTER)THEN
-              DO IJ=KIJS,KIJL
-                COSLP(IJ,K) = COS(TH(K)-USDIRP(IJ,IGST))
-              ENDDO
-            ENDIF
-            DO IJ=KIJS,KIJL
-              GAM0(IJ,K,IGST) = 0.0_JWRB
-              IF (COSLP(IJ,K) > 0.01_JWRB) THEN
-                X    = COSLP(IJ,K)*UCN(IJ,IGST)
-                ZLOG = ZCN(IJ) + UCNZALPD(IJ,IGST)/COSLP(IJ,K)
-                IF (ZLOG < 0.0_JWRB) THEN
-                  ZLOG2X=ZLOG*ZLOG*X
-                  GAM0(IJ,K,IGST) = EXP(ZLOG)*ZLOG2X*ZLOG2X * CNSN(IJ)
-                  XLLWS(IJ,K,M) = 1.0_JWRB
-                ENDIF
-              ENDIF
-            ENDDO
-          ENDDO
-
+            IF (LTAUWSHELTER) THEN
+              COSLP(K) = COS(TH(K) - USDIRP(IGST))
+            END IF
+            GAM0(K, IGST) = 0.0_JWRB
+            IF (COSLP(K) > 0.01_JWRB) THEN
+              X = COSLP(K)*UCN(IGST)
+              ZLOG = ZCN + UCNZALPD(IGST) / COSLP(K)
+              IF (ZLOG < 0.0_JWRB) THEN
+                ZLOG2X = ZLOG*ZLOG*X
+                GAM0(K, IGST) = EXP(ZLOG)*ZLOG2X*ZLOG2X*CNSN
+                XLLWS(IJ, K, M) = 1.0_JWRB
+              END IF
+            END IF
+          END DO
+          
           IF (LLNORMAGAM) THEN
-
-            SUMF(KIJS:KIJL) = 0.0_JWRB
-            SUMFSIN2(KIJS:KIJL) = 0.0_JWRB
+            
+            SUMF = 0.0_JWRB
+            SUMFSIN2 = 0.0_JWRB
             DO K=1,NANG
-              DO IJ=KIJS,KIJL
-                SUMF(IJ) = SUMF(IJ) + GAM0(IJ,K,IGST)*FL1(IJ,K,M)
-                SUMFSIN2(IJ) = SUMFSIN2(IJ) + GAM0(IJ,K,IGST)*FL1(IJ,K,M)*SINWDIF2(IJ,K)
-              ENDDO
-            ENDDO
-
-            DO IJ=KIJS,KIJL
-              ZNZ = XNGAMCONST(IJ)*USTPM1(IJ,IGST)
-              GAMNORMA(IJ,IGST) = (1.0_JWRB + ZNZ*SUMFSIN2(IJ)) / (1.0_JWRB + ZNZ*SUMF(IJ))
-            ENDDO
-
-          ENDIF
-
+              SUMF = SUMF + GAM0(K, IGST)*FL1(IJ, K, M)
+              SUMFSIN2 = SUMFSIN2 + GAM0(K, IGST)*FL1(IJ, K, M)*SINWDIF2(IJ, K)
+            END DO
+            
+            ZNZ = XNGAMCONST*USTPM1(IGST)
+            GAMNORMA(IGST) = (1.0_JWRB + ZNZ*SUMFSIN2) / (1.0_JWRB + ZNZ*SUMF)
+            
+          END IF
+          
           IF (LLSNEG) THEN
             DO K=1,NANG
-              DO IJ=KIJS,KIJL
-                DSTAB2 = TEMP1(IJ)*(TEMP2(IJ)+(FU+FUD*COSLP(IJ,K))*USTP(IJ,IGST))
-                DSTAB(IJ,K,IGST) = DSTAB1(IJ)+PTURB(IJ)*DSTAB2
-              ENDDO
-            ENDDO
-          ENDIF
-        ENDDO
-
-
-!*    2.2 UPDATE THE SHELTERING STRESS (in any),
-!         AND THEN ADDING INPUT SOURCE TERM TO NET SOURCE FUNCTION.
-!         ---------------------------------------------------------
-
+              DSTAB2 = TEMP1*(TEMP2 + (FU + FUD*COSLP(K))*USTP(IGST))
+              DSTAB(K, IGST) = DSTAB1 + PTURB*DSTAB2
+            END DO
+          END IF
+        END DO
+        
+        
+        !*    2.2 UPDATE THE SHELTERING STRESS (in any),
+        !         AND THEN ADDING INPUT SOURCE TERM TO NET SOURCE FUNCTION.
+        !         ---------------------------------------------------------
+        
         DO K=1,NANG
-
+          
           DO IGST=1,NGST
-            DO IJ=KIJS,KIJL
-              ! SLP: only the positive contributions
-              SLP(IJ,IGST) =  GAM0(IJ,K,IGST) * GAMNORMA(IJ,IGST)
-              FLP(IJ,IGST) = SLP(IJ,IGST)+DSTAB(IJ,K,IGST)
-            ENDDO
-          ENDDO
-
+            ! SLP: only the positive contributions
+            SLP(IGST) = GAM0(K, IGST)*GAMNORMA(IGST)
+            FLP(IGST) = SLP(IGST) + DSTAB(K, IGST)
+          END DO
+          
           DO IGST=1,NGST
-            DO IJ=KIJS,KIJL
-              SLP(IJ,IGST) = SLP(IJ,IGST)*FL1(IJ,K,M)
-            ENDDO
-          ENDDO
-
+            SLP(IGST) = SLP(IGST)*FL1(IJ, K, M)
+          END DO
+          
           IF (LTAUWSHELTER) THEN
-            DO IJ=KIJS,KIJL
-              CONST11(IJ)=CONSTF(IJ)*SINTH(K)
-              CONST22(IJ)=CONSTF(IJ)*COSTH(K)
-            ENDDO
+            CONST11 = CONSTF*SINTH(K)
+            CONST22 = CONSTF*COSTH(K)
             DO IGST=1,NGST
-              DO IJ=KIJS,KIJL
-                XSTRESS(IJ,IGST)=XSTRESS(IJ,IGST)+SLP(IJ,IGST)*CONST11(IJ)
-                YSTRESS(IJ,IGST)=YSTRESS(IJ,IGST)+SLP(IJ,IGST)*CONST22(IJ)
-              ENDDO
-            ENDDO
-          ENDIF
-
-          IGST=1
-            DO IJ=KIJS,KIJL
-              SLP_AVG(IJ) = SLP(IJ,IGST)
-              FLP_AVG(IJ) = FLP(IJ,IGST)
-            ENDDO
+              XSTRESS(IGST) = XSTRESS(IGST) + SLP(IGST)*CONST11
+              YSTRESS(IGST) = YSTRESS(IGST) + SLP(IGST)*CONST22
+            END DO
+          END IF
+          
+          IGST = 1
+          SLP_AVG = SLP(IGST)
+          FLP_AVG = FLP(IGST)
           DO IGST=2,NGST
-            DO IJ=KIJS,KIJL
-              SLP_AVG(IJ) = SLP_AVG(IJ)+SLP(IJ,IGST)
-              FLP_AVG(IJ) = FLP_AVG(IJ)+FLP(IJ,IGST)
-            ENDDO
-          ENDDO
-
-          DO IJ=KIJS,KIJL
-            SPOS(IJ,K,M) = AVG_GST*SLP_AVG(IJ)
-          ENDDO
-
-          DO IJ=KIJS,KIJL
-            FLD(IJ,K,M) = AVG_GST*FLP_AVG(IJ)
-            SL(IJ,K,M) = FLD(IJ,K,M)*FL1(IJ,K,M)
-          ENDDO
-
-        ENDDO
-
-      ENDDO ! END LOOP OVER FREQUENCIES
-
-IF (LHOOK) CALL DR_HOOK('SINPUT_ARD',1,ZHOOK_HANDLE)
-
-END SUBROUTINE SINPUT_ARD
+            SLP_AVG = SLP_AVG + SLP(IGST)
+            FLP_AVG = FLP_AVG + FLP(IGST)
+          END DO
+          
+          SPOS(IJ, K, M) = AVG_GST*SLP_AVG
+          
+          FLD(IJ, K, M) = AVG_GST*FLP_AVG
+          SL(IJ, K, M) = FLD(IJ, K, M)*FL1(IJ, K, M)
+          
+        END DO
+        
+      END DO
+    END DO
+    
+    ! END LOOP OVER FREQUENCIES
+    
+    
+    
+  END SUBROUTINE SINPUT_ARD
