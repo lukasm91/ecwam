@@ -256,25 +256,47 @@ IF (CDATE >= CDTIMPNEXT) THEN
         & COSWDIF(:,:,ICHNK), SINWDIF2(:,:,ICHNK), &
         & CIREDUC(:,:,:,ICHNK))
       END DO
-      DO ICHNK=1,NCHNK
-        CALL IMPLSCH_SINFLX_SDISSIP(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), WAVNUM_DPTR(:,:,ICHNK), &
-        & CINV_DPTR(:,:,ICHNK), &
-        & XK2CG_DPTR(:,:,ICHNK), &
-        & INDEP_DPTR(:,ICHNK), &
-        & AIRD_DPTR(:,ICHNK), WDWAVE_DPTR(:,ICHNK),  &
-        & CICOVER_DPTR(:,ICHNK), WSWAVE_DPTR(:,ICHNK), WSTAR_DPTR(:,ICHNK), &
-        & UFRIC_DPTR(:,ICHNK), TAUW_DPTR(:,ICHNK), TAUWDIR_DPTR(:,ICHNK), &
-        & Z0M_DPTR(:,ICHNK), Z0B_DPTR(:,ICHNK), CHRNCK_DPTR(:,ICHNK), &
-        & MIJ_DPTR(:,ICHNK), XLLWS_DPTR(:,:,:,ICHNK), &
-        & FMEANWS(:,ICHNK), EMEAN(:,ICHNK), FMEAN(:,ICHNK), &
-        & F1MEAN(:,ICHNK), XKMEAN(:,ICHNK), &
-        & PHIWA(:,ICHNK), &
-        & FLM(:,:,ICHNK), &
-        & COSWDIF(:,:,ICHNK), SINWDIF2(:,:,ICHNK), &
-        & RHOWGDFTH(:,:,ICHNK), &
-        & FLD(:,:,:,ICHNK), SL(:,:,:,ICHNK), SPOS(:,:,:,ICHNK), &
-        & SSOURCE(:,:,:,ICHNK))
-      END DO
+      !IF (INONLIN_IMPL == 0) THEN
+      !ELSE
+        DO ICHNK=1,NCHNK
+          CALL IMPLSCH_SINFLX(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), WAVNUM_DPTR(:,:,ICHNK), &
+          & CINV_DPTR(:,:,ICHNK), &
+          & XK2CG_DPTR(:,:,ICHNK), &
+          & INDEP_DPTR(:,ICHNK), &
+          & AIRD_DPTR(:,ICHNK), WDWAVE_DPTR(:,ICHNK),  &
+          & CICOVER_DPTR(:,ICHNK), WSWAVE_DPTR(:,ICHNK), WSTAR_DPTR(:,ICHNK), &
+          & UFRIC_DPTR(:,ICHNK), TAUW_DPTR(:,ICHNK), TAUWDIR_DPTR(:,ICHNK), &
+          & Z0M_DPTR(:,ICHNK), Z0B_DPTR(:,ICHNK), CHRNCK_DPTR(:,ICHNK), &
+          & MIJ_DPTR(:,ICHNK), XLLWS_DPTR(:,:,:,ICHNK), &
+          & FMEANWS(:,ICHNK), EMEAN(:,ICHNK), FMEAN(:,ICHNK), &
+          & F1MEAN(:,ICHNK), XKMEAN(:,ICHNK), &
+          & PHIWA(:,ICHNK), &
+          & FLM(:,:,ICHNK), &
+          & COSWDIF(:,:,ICHNK), SINWDIF2(:,:,ICHNK), &
+          & RHOWGDFTH(:,:,ICHNK), &
+          & FLD(:,:,:,ICHNK), SL(:,:,:,ICHNK), SPOS(:,:,:,ICHNK), &
+          & SSOURCE(:,:,:,ICHNK))
+        END DO
+        DO ICHNK=1,NCHNK
+          CALL IMPLSCH_SDISSIP(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), WAVNUM_DPTR(:,:,ICHNK), &
+          & CINV_DPTR(:,:,ICHNK), &
+          & XK2CG_DPTR(:,:,ICHNK), &
+          & INDEP_DPTR(:,ICHNK), &
+          & AIRD_DPTR(:,ICHNK), WDWAVE_DPTR(:,ICHNK),  &
+          & CICOVER_DPTR(:,ICHNK), WSWAVE_DPTR(:,ICHNK), WSTAR_DPTR(:,ICHNK), &
+          & UFRIC_DPTR(:,ICHNK), TAUW_DPTR(:,ICHNK), TAUWDIR_DPTR(:,ICHNK), &
+          & Z0M_DPTR(:,ICHNK), Z0B_DPTR(:,ICHNK), CHRNCK_DPTR(:,ICHNK), &
+          & MIJ_DPTR(:,ICHNK), XLLWS_DPTR(:,:,:,ICHNK), &
+          & FMEANWS(:,ICHNK), EMEAN(:,ICHNK), FMEAN(:,ICHNK), &
+          & F1MEAN(:,ICHNK), XKMEAN(:,ICHNK), &
+          & PHIWA(:,ICHNK), &
+          & FLM(:,:,ICHNK), &
+          & COSWDIF(:,:,ICHNK), SINWDIF2(:,:,ICHNK), &
+          & RHOWGDFTH(:,:,ICHNK), &
+          & FLD(:,:,:,ICHNK), SL(:,:,:,ICHNK), SPOS(:,:,:,ICHNK), &
+          & SSOURCE(:,:,:,ICHNK))
+        END DO
+      !ENDIF
       IF (INONLIN_IMPL == 0) THEN
         DO ICHNK=1,NCHNK
           CALL IMPLSCH_SNONLIN(1, NPROMA_WAM, FL1_DPTR(:,:,:,ICHNK), &

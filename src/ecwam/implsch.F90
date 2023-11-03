@@ -92,8 +92,6 @@ SUBROUTINE IMPLSCH_FIRST_PART (KIJS, KIJL, FL1,                         &
 #include "ciwabr.intfb.h"
 #include "fkmean.intfb.h"
 #include "sdepthlim.intfb.h"
-#include "sdissip.intfb.h"
-#include "sinflx.intfb.h"
 ! ----------------------------------------------------------------------
 
 
@@ -187,7 +185,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',1,ZHOOK_HANDLE)
 
 
 END SUBROUTINE IMPLSCH_FIRST_PART
-SUBROUTINE IMPLSCH_SINFLX_SDISSIP (KIJS, KIJL, FL1,                         &
+SUBROUTINE IMPLSCH_SINFLX (KIJS, KIJL, FL1,                         &
  &                  WAVNUM, CINV, XK2CG, &
  &                  INDEP, &
  &                  AIRD, WDWAVE, CICOVER, WSWAVE, WSTAR, &
@@ -274,10 +272,6 @@ SUBROUTINE IMPLSCH_SINFLX_SDISSIP (KIJS, KIJL, FL1,                         &
       USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
 
       IMPLICIT NONE
-#include "ciwabr.intfb.h"
-#include "fkmean.intfb.h"
-#include "sdepthlim.intfb.h"
-#include "sdissip.intfb.h"
 #include "sinflx.intfb.h"
 ! ----------------------------------------------------------------------
 
@@ -366,6 +360,109 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 
       ENDDO
 
+! ----------------------------------------------------------------------
+IF (LHOOK) CALL DR_HOOK('IMPLSCH',1,ZHOOK_HANDLE)
+
+
+END SUBROUTINE IMPLSCH_SINFLX
+SUBROUTINE IMPLSCH_SDISSIP (KIJS, KIJL, FL1,                         &
+ &                  WAVNUM, CINV, XK2CG, &
+ &                  INDEP, &
+ &                  AIRD, WDWAVE, CICOVER, WSWAVE, WSTAR, &
+ &                  UFRIC, TAUW, TAUWDIR, Z0M, Z0B, CHRNCK, &
+ &                  MIJ, XLLWS, &
+ &                  FMEANWS, EMEAN, FMEAN, &
+ &                  F1MEAN, XKMEAN, &
+ &                  PHIWA, &
+ &                  FLM, &
+ &                  COSWDIF, SINWDIF2, &
+ &                  RHOWGDFTH, &
+ &                  FLD, SL, SPOS, &
+ &                  SSOURCE)
+
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU, JWRO
+      USE YOWDRVTYPE  , ONLY : ENVIRONMENT, FREQUENCY, FORCING_FIELDS,   &
+ &                             INTGT_PARAM_FIELDS, WAVE2OCEAN
+
+      USE YOWCOUP  , ONLY : LWFLUX   , LWVFLX_SNL , LWNEMOCOU, LWNEMOCOUSTRN 
+      USE YOWCOUT  , ONLY : LWFLUXOUT 
+      USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
+      USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
+      USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
+      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
+      USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+      IMPLICIT NONE
+#include "sdissip.intfb.h"
+! ----------------------------------------------------------------------
+
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL, NFRE), INTENT(IN) :: WAVNUM
+      REAL(KIND=JWRB), DIMENSION(KIJL, NFRE), INTENT(IN) :: CINV
+      REAL(KIND=JWRB), DIMENSION(KIJL, NFRE), INTENT(IN) :: XK2CG
+
+      INTEGER(KIND=JWIM), DIMENSION(KIJL), INTENT(IN) :: INDEP
+
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: WDWAVE, CICOVER, AIRD, WSTAR
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: UFRIC, TAUW, TAUWDIR, Z0M, Z0B, CHRNCK, WSWAVE
+      INTEGER(KIND=JWIM), DIMENSION(KIJL), INTENT(OUT) :: MIJ
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(OUT) :: XLLWS
+
+
+      INTEGER(KIND=JWIM) :: IJ, K, M
+      INTEGER(KIND=JWIM) :: ICALL, NCALL
+
+      REAL(KIND=JWRB) :: DELT, DELTM, XIMP, DELT5
+      REAL(KIND=JWRB) :: GTEMP1, GTEMP2, FLHAB
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB), DIMENSION(KIJL) :: RAORW, HALP
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: FMEANWS, EMEAN, FMEAN
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: F1MEAN, XKMEAN
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: PHIWA
+
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(INOUT) :: FLM
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(INOUT) :: COSWDIF, SINWDIF2
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(INOUT) :: RHOWGDFTH
+!     *FLD* DIAGONAL MATRIX OF FUNCTIONAL DERIVATIVE
+!     *SL*  TOTAL SOURCE FUNCTION ARRAY.
+!     *SPOS* : POSITIVE SINPUT ONLY
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FLD, SL, SPOS
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: SSOURCE
+
+      LOGICAL :: LCFLX
+      LOGICAL :: LUPDTUS
+
+! ----------------------------------------------------------------------
+
+IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
+
+
+!*    1. INITIALISATION.
+!        ---------------
+
+      DELT = IDELT
+      DELTM = 1.0_JWRB/DELT
+      XIMP = 1.0_JWRB
+      DELT5 = XIMP*DELT
+
+      LCFLX=LWFLUX.OR.LWFLUXOUT.OR.LWNEMOCOU
+
+
+      DO IJ=KIJS,KIJL
+        RAORW(IJ) = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
+      ENDDO
+
+! ----------------------------------------------------------------------
+
+!*    2.3 COMPUTATION OF SOURCE FUNCTIONS.
+!         --------------------------------
+
 !     2.3.3 ADD THE OTHER SOURCE TERMS.
 !           ---------------------------
 
@@ -389,7 +486,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 IF (LHOOK) CALL DR_HOOK('IMPLSCH',1,ZHOOK_HANDLE)
 
 
-END SUBROUTINE IMPLSCH_SINFLX_SDISSIP
+END SUBROUTINE IMPLSCH_SDISSIP
 SUBROUTINE IMPLSCH_SNONLIN (KIJS, KIJL, FL1, FLD, SL,                &
  &                  WAVNUM, DEPTH, AKMEAN)
 
