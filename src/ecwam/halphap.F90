@@ -113,3 +113,81 @@ IF (LHOOK) CALL DR_HOOK('HALPHAP',0,ZHOOK_HANDLE)
 IF (LHOOK) CALL DR_HOOK('HALPHAP',1,ZHOOK_HANDLE)
 
 END SUBROUTINE HALPHAP
+SUBROUTINE HALPHAP_PW(IDX, KIJS, KIJL, WAVNUM, COSWDIF, FL1, HALP, WD, FLWD)
+!$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWFRED  , ONLY : FR       , TH       , FR5      ,DELTH
+      USE YOWPARAM , ONLY : NANG     , NFRE, NANG_PARAM
+      USE YOWPCONS , ONLY : G        , ZPI      ,ZPI4GM2
+      USE YOWPHYS  , ONLY : ALPHAPMAX
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+#include "femean.intfb.h"
+#include "meansqs_lf.intfb.h"
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(IN) :: COSWDIF 
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), INTENT(OUT) :: HALP
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM), INTENT(INOUT) :: WD
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FLWD
+
+      INTEGER(KIND=JWIM) :: K, M
+
+      REAL(KIND=JWRB) :: ZLNFRNFRE
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: ALPHAP
+      REAL(KIND=JWRB) :: XMSS, EM, FM, F1D 
+
+! ----------------------------------------------------------------------
+
+IF (LHOOK) CALL DR_HOOK('HALPHAP',0,ZHOOK_HANDLE)
+
+      ZLNFRNFRE = LOG(FR(NFRE))
+
+      ! Find spectrum in wind direction
+      DO K = 1, NANG
+         WD(IDX,K) = 0.5_JWRB + 0.5_JWRB * SIGN(1.0_JWRB, COSWDIF(IDX,K))
+      ENDDO
+
+      DO M = 1, NFRE
+        DO K = 1, NANG
+           FLWD(IDX,K,M) = FL1(IDX,K,M) * WD(IDX,K) 
+        ENDDO
+      ENDDO
+
+      CALL MEANSQS_LF_PW(IDX, NFRE, KIJS, KIJL, FLWD, WAVNUM, XMSS)
+      CALL FEMEAN_PW(IDX, KIJS, KIJL, FLWD, EM, FM)
+
+      IF (EM > 0.0_JWRB .AND. FM < FR(NFRE-2) ) THEN
+        ALPHAP = XMSS /(ZLNFRNFRE - LOG(FM))
+        IF ( ALPHAP > ALPHAPMAX ) THEN
+          ! some odd cases, revert to tail value
+          F1D = 0.0_JWRB
+          DO K = 1, NANG
+            F1D = F1D + FLWD(IDX,K,NFRE)*DELTH
+          ENDDO
+          ALPHAP = ZPI4GM2*FR5(NFRE)*F1D
+        ENDIF
+      ELSE
+        F1D = 0.0_JWRB
+        DO K = 1, NANG
+          F1D = F1D + FLWD(IDX,K,NFRE)*DELTH
+        ENDDO
+        ALPHAP = ZPI4GM2*FR5(NFRE)*F1D
+      ENDIF
+
+!     1/2 ALPHAP:
+      HALP = 0.5_JWRB*MIN(ALPHAP, ALPHAPMAX)
+
+IF (LHOOK) CALL DR_HOOK('HALPHAP',1,ZHOOK_HANDLE)
+
+END SUBROUTINE HALPHAP_PW
