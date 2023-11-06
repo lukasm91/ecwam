@@ -7,9 +7,9 @@
 ! nor does it submit to any jurisdiction.
 !
 
-      SUBROUTINE AIRSEA (KIJS, KIJL, &
-&                        HALP, U10, U10DIR, TAUW, TAUWDIR, RNFAC,  &
+      SUBROUTINE AIRSEA (HALP, U10, U10DIR, TAUW, TAUWDIR, RNFAC,  &
 &                        US, Z0, Z0B, CHRNCK, ICODE_WND, IUSFG)
+!$loki routine seq
 
 ! ----------------------------------------------------------------------
 
@@ -72,16 +72,12 @@
 #include "taut_z0.intfb.h"
 #include "z0wave.intfb.h"
 
-      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL, ICODE_WND, IUSFG
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT (IN) :: HALP, U10DIR, TAUW, TAUWDIR, RNFAC
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT (INOUT) :: U10, US
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT (OUT) :: Z0, Z0B, CHRNCK
+      INTEGER(KIND=JWIM), INTENT(IN) :: ICODE_WND, IUSFG
+      REAL(KIND=JWRB), INTENT (IN) :: HALP, U10DIR, TAUW, TAUWDIR, RNFAC
+      REAL(KIND=JWRB), INTENT (INOUT) :: U10, US
+      REAL(KIND=JWRB), INTENT (OUT) :: Z0, Z0B, CHRNCK
 
-      INTEGER(KIND=JWIM) :: IJ, I, J
-
-      REAL(KIND=JWRB) :: XI, XJ, DELI1, DELI2, DELJ1, DELJ2, UST2, ARG, SQRTCDM1
       REAL(KIND=JWRB) :: XKAPPAD, XLOGLEV
-      REAL(KIND=JWRB) :: XLEV
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
 
 ! ----------------------------------------------------------------------
@@ -92,20 +88,16 @@
 
       IF (ICODE_WND == 3) THEN
 
-        DO IJ = KIJS, KIJL
-          CALL TAUT_Z0 (IUSFG,          &
-       &                HALP(IJ), U10(IJ), U10DIR(IJ), TAUW(IJ), TAUWDIR(IJ), RNFAC(IJ), &
-       &                US(IJ), Z0(IJ), Z0B(IJ), CHRNCK(IJ))
-        ENDDO
+        CALL TAUT_Z0 (IUSFG,          &
+     &                HALP, U10, U10DIR, TAUW, TAUWDIR, RNFAC, &
+     &                US, Z0, Z0B, CHRNCK)
 
       ELSEIF (ICODE_WND == 1 .OR. ICODE_WND == 2) THEN
 
 !*    3. DETERMINE ROUGHNESS LENGTH (if needed).
 !        ---------------------------
 
-        DO IJ = KIJS, KIJL
-          CALL Z0WAVE (US(IJ), TAUW(IJ), U10(IJ), Z0(IJ), Z0B(IJ), CHRNCK(IJ))
-        ENDDO
+        CALL Z0WAVE (US, TAUW, U10, Z0, Z0B, CHRNCK)
 
 !*    3. DETERMINE U10 (if needed).
 !        ---------------------------
@@ -113,10 +105,8 @@
         XKAPPAD = 1.0_JWRB / XKAPPA
         XLOGLEV = LOG (XNLEV)
 
-        DO IJ = KIJS, KIJL
-          U10 (IJ) = XKAPPAD * US (IJ) * (XLOGLEV - LOG (Z0 (IJ)))
-          U10 (IJ) = MAX (U10 (IJ), WSPMIN)
-        ENDDO
+        U10  = XKAPPAD * US  * (XLOGLEV - LOG (Z0 ))
+        U10  = MAX (U10 , WSPMIN)
       ENDIF
 
       IF (LHOOK) CALL DR_HOOK ('AIRSEA', 1, ZHOOK_HANDLE)
