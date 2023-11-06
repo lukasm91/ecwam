@@ -7,7 +7,8 @@
 ! nor does it submit to any jurisdiction.
 !
 
-      SUBROUTINE Z0WAVE (KIJS, KIJL, US, TAUW, UTOP, Z0, Z0B, CHRNCK)
+      SUBROUTINE Z0WAVE (US, TAUW, UTOP, Z0, Z0B, CHRNCK)
+!$loki routine seq
 
 ! ----------------------------------------------------------------------
 
@@ -60,39 +61,26 @@
       IMPLICIT NONE
 #include "chnkmin.intfb.h"
 
-      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL
-      REAL(KIND=JWRB),DIMENSION(KIJL),INTENT(IN)  ::  US, TAUW, UTOP
-      REAL(KIND=JWRB),DIMENSION(KIJL),INTENT(OUT) ::  Z0, Z0B, CHRNCK
+      REAL(KIND=JWRB),INTENT(IN)  ::  US, TAUW, UTOP
+      REAL(KIND=JWRB),INTENT(OUT) ::  Z0, Z0B, CHRNCK
 
 
-      INTEGER(KIND=JWIM) :: IJ
       REAL(KIND=JWRB) :: UST2, UST3, ARG
-      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: ALPHAOG
+      REAL(KIND=JWRB) :: ALPHAOG
 
 ! ----------------------------------------------------------------------
 
-      IF (LHOOK) CALL DR_HOOK('Z0WAVE',0,ZHOOK_HANDLE)
-
       IF (LLCAPCHNK) THEN
-        DO IJ=KIJS,KIJL
-          ALPHAOG(IJ)= CHNKMIN(UTOP(IJ))*GM1
-        ENDDO
+        ALPHAOG= CHNKMIN(UTOP)*GM1
       ELSE
-        DO IJ=KIJS,KIJL
-          ALPHAOG(IJ)= ALPHA*GM1
-        ENDDO
+        ALPHAOG= ALPHA*GM1
       ENDIF
 
-      DO IJ=KIJS,KIJL
-        UST2 = US(IJ)**2
-        UST3 = US(IJ)**3
-        ARG = MAX(UST2-TAUW(IJ),EPS1)
-        Z0(IJ) = ALPHAOG(IJ)*UST3/SQRT(ARG)
-        Z0B(IJ) = ALPHAOG(IJ)*UST2
-        CHRNCK(IJ) = G*Z0(IJ)/UST2
-      ENDDO
-
-      IF (LHOOK) CALL DR_HOOK('Z0WAVE',1,ZHOOK_HANDLE)
+      UST2 = US**2
+      UST3 = US**3
+      ARG = MAX(UST2-TAUW,EPS1)
+      Z0 = ALPHAOG*UST3/SQRT(ARG)
+      Z0B = ALPHAOG*UST2
+      CHRNCK = G*Z0/UST2
 
       END SUBROUTINE Z0WAVE

@@ -7,9 +7,10 @@
 ! nor does it submit to any jurisdiction.
 !
 
-SUBROUTINE TAUT_Z0(KIJS, KIJL, IUSFG,          &
+SUBROUTINE TAUT_Z0(IUSFG,          &
 &                  HALP, UTOP, UDIR, TAUW, TAUWDIR, RNFAC, &
 &                  USTAR, Z0, Z0B, CHRNCK)
+!$loki routine seq
 
 ! ----------------------------------------------------------------------
 
@@ -84,17 +85,17 @@ SUBROUTINE TAUT_Z0(KIJS, KIJL, IUSFG,          &
 #include "chnkmin.intfb.h"
 #include "stress_gc.intfb.h"
 
-      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL, IUSFG
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: HALP, UTOP, UDIR, TAUW, TAUWDIR, RNFAC
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: USTAR
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(OUT) :: Z0, Z0B, CHRNCK
+      INTEGER(KIND=JWIM), INTENT(IN) :: IUSFG
+      REAL(KIND=JWRB), INTENT(IN) :: HALP, UTOP, UDIR, TAUW, TAUWDIR, RNFAC
+      REAL(KIND=JWRB), INTENT(INOUT) :: USTAR
+      REAL(KIND=JWRB), INTENT(OUT) :: Z0, Z0B, CHRNCK
 
 
       INTEGER(KIND=JWIM), PARAMETER :: NITER=17
 
       REAL(KIND=JWRB), PARAMETER :: TWOXMP1=3.0_JWRB
 
-      INTEGER(KIND=JWIM) :: IJ, ITER
+      INTEGER(KIND=JWIM) :: IDX, ITER
       INTEGER(KIND=JWIM) :: IFRPH
 
       ! Cd and Z0 from Hersbach 2010, ECMWF Tech Memo (without the viscous part)
@@ -116,12 +117,12 @@ SUBROUTINE TAUT_Z0(KIJS, KIJL, IUSFG,          &
       REAL(KIND=JWRB) :: CONST, TAUV, DEL
       REAL(KIND=JWRB) :: RNUEFF, RNUKAPPAM1
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: ALPHAOG, XMIN
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: W1
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: TAUWACT, TAUWEFF 
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: ANG_GC, TAUUNR
+      REAL(KIND=JWRB) :: ALPHAOG, XMIN
+      REAL(KIND=JWRB) :: W1
+      REAL(KIND=JWRB) :: TAUWACT, TAUWEFF 
+      REAL(KIND=JWRB) :: ANG_GC, TAUUNR
 
-      LOGICAL,  DIMENSION(KIJL) :: LLCOSDIFF
+      LOGICAL :: LLCOSDIFF
 
 ! ----------------------------------------------------------------------
 
@@ -131,206 +132,185 @@ IF (LHOOK) CALL DR_HOOK('TAUT_Z0',0,ZHOOK_HANDLE)
       US2TOTAUW=1.0_JWRB+EPS1
 
 !     ONLY take the contribution of TAUW that is in the wind direction
-      DO IJ = KIJS, KIJL
-        COSDIFF = COS(UDIR(IJ)-TAUWDIR(IJ))
-        TAUWACT(IJ) = MAX(TAUW(IJ)*COSDIFF, EPSMIN )
-        LLCOSDIFF(IJ) = (COSDIFF > 0.9_JWRB )
-      ENDDO
+        COSDIFF = COS(UDIR-TAUWDIR)
+        TAUWACT = MAX(TAUW*COSDIFF, EPSMIN )
+        LLCOSDIFF = (COSDIFF > 0.9_JWRB )
 
 !  USING THE CG MODEL:
-IF (LLGCBZ0) THEN
+       IF (LLGCBZ0) THEN
 
-      IF (LLCAPCHNK) THEN
-        DO IJ=KIJS,KIJL
-          CHARNOCK_MIN = CHNKMIN(UTOP(IJ))
-          ALPHAOG(IJ) = CHARNOCK_MIN*GM1
-        ENDDO
-      ELSE
-        ALPHAOG(KIJS:KIJL)= 0.0_JWRB
-      ENDIF
+        IF (LLCAPCHNK) THEN
+          CHARNOCK_MIN = CHNKMIN(UTOP)
+          ALPHAOG = CHARNOCK_MIN*GM1
+        ELSE
+        ALPHAOG= 0.0_JWRB
+        ENDIF
 
-      DO IJ = KIJS, KIJL
-        USMAX = MAX(-0.21339_JWRB + 0.093698_JWRB*UTOP(IJ) -0.0020944_JWRB*UTOP(IJ)**2 + 5.5091E-5_JWRB*UTOP(IJ)**3, 0.03_JWRB)
-        TAUWEFF(IJ) = MIN(TAUWACT(IJ)*US2TOTAUW, USMAX**2 )
-      ENDDO
+        USMAX = MAX(-0.21339_JWRB + 0.093698_JWRB*UTOP -0.0020944_JWRB*UTOP**2 + 5.5091E-5_JWRB*UTOP**3, 0.03_JWRB)
+        TAUWEFF = MIN(TAUWACT*US2TOTAUW, USMAX**2 )
 
-      RNUEFF = 0.04_JWRB*RNU
+        RNUEFF = 0.04_JWRB*RNU
 
-      RNUKAPPAM1 = RNUEFF/XKAPPA
+        RNUKAPPAM1 = RNUEFF/XKAPPA
 
-      PCE_GC = 0.001_JWRB * IUSFG + (1-IUSFG) * 0.005_JWRB
+        PCE_GC = 0.001_JWRB * IUSFG + (1-IUSFG) * 0.005_JWRB
 
-      IF (IUSFG == 0 ) THEN
-        ALPHAGM1 = ALPHA*GM1
-        DO IJ = KIJS, KIJL
-          IF ( UTOP(IJ) < 1.0_JWRB ) THEN
+        IF (IUSFG == 0 ) THEN
+          ALPHAGM1 = ALPHA*GM1
+          IF ( UTOP < 1.0_JWRB ) THEN
             CDFG = 0.002_JWRB
-          ELSEIF ( LLCOSDIFF(IJ) ) THEN
-            X = MIN(TAUWACT(IJ)/MAX(USTAR(IJ),EPSUS)**2,0.99_JWRB)
-            ZCHAR = MIN( ALPHAGM1 * USTAR(IJ)**2 / SQRT(1.0_JWRB - X), 0.05_JWRB*EXP(-0.05_JWRB*(UTOP(IJ)-35._JWRB)) )
+          ELSEIF ( LLCOSDIFF ) THEN
+            X = MIN(TAUWACT/MAX(USTAR,EPSUS)**2,0.99_JWRB)
+            ZCHAR = MIN( ALPHAGM1 * USTAR**2 / SQRT(1.0_JWRB - X), 0.05_JWRB*EXP(-0.05_JWRB*(UTOP-35._JWRB)) )
             ZCHAR = MIN(ZCHAR,ALPHAMAX)
-            CDFG = ACDLIN + BCDLIN*SQRT(ZCHAR) * UTOP(IJ)
+            CDFG = ACDLIN + BCDLIN*SQRT(ZCHAR) * UTOP
           ELSE
-            CDFG = CDM(UTOP(IJ))
+            CDFG = CDM(UTOP)
           ENDIF
-          USTAR(IJ) = UTOP(IJ)*SQRT(CDFG)
-        ENDDO
-      ENDIF
+          USTAR = UTOP*SQRT(CDFG)
+        ENDIF
 
-      DO IJ = KIJS, KIJL
-        W1(IJ) = 0.85_JWRB - 0.05_JWRB*( TANH(10.0_JWRB*(UTOP(IJ)-5.0_JWRB)) + 1.0_JWRB )
-      ENDDO
+        W1 = 0.85_JWRB - 0.05_JWRB*( TANH(10.0_JWRB*(UTOP-5.0_JWRB)) + 1.0_JWRB )
 
-      DO IJ = KIJS, KIJL
-        XKUTOP = XKAPPA * UTOP(IJ)
+        XKUTOP = XKAPPA * UTOP
 
-        USTOLD = USTAR(IJ)
+        USTOLD = USTAR
         TAUOLD = USTOLD**2
 
         DO ITER=1,NITER
 !         Z0 IS DERIVED FROM THE NEUTRAL LOG PROFILE: UTOP = (USTAR/XKAPPA)*LOG((XNLEV+Z0)/Z0)
-          Z0(IJ) = MAX(XNLEV/(EXP(MIN(XKUTOP/USTOLD, 50.0_JWRB))-1.0_JWRB), Z0MIN)
+          Z0 = MAX(XNLEV/(EXP(MIN(XKUTOP/USTOLD, 50.0_JWRB))-1.0_JWRB), Z0MIN)
           ! Viscous kinematic stress nu_air * dU/dz at z=0 of the neutral log profile reduced by factor 25 (0.04)
-          TAUV = RNUKAPPAM1*USTOLD/Z0(IJ)
+          TAUV = RNUKAPPAM1*USTOLD/Z0
 
-          ANG_GC(IJ) = ANG_GC_A + ANG_GC_B * TANH(ANG_GC_C * TAUOLD)
+          ANG_GC = ANG_GC_A + ANG_GC_B * TANH(ANG_GC_C * TAUOLD)
 
-          TAUUNR(IJ) = STRESS_GC(ANG_GC(IJ), USTAR(IJ), Z0(IJ), Z0MIN, HALP(IJ), RNFAC(IJ))
+          TAUUNR = STRESS_GC(ANG_GC, USTAR, Z0, Z0MIN, HALP, RNFAC)
 
 !         TOTAL kinematic STRESS:
-          TAUNEW = TAUWEFF(IJ) + TAUV + TAUUNR(IJ)
+          TAUNEW = TAUWEFF + TAUV + TAUUNR
           USTNEW = SQRT(TAUNEW)
-          USTAR(IJ) = W1(IJ)*USTOLD+(1.0_JWRB-W1(IJ))*USTNEW
+          USTAR = W1*USTOLD+(1.0_JWRB-W1)*USTNEW
 
 !         CONVERGENCE ?
-          DEL = USTAR(IJ)-USTOLD
-          IF (ABS(DEL) < PCE_GC*USTAR(IJ)) EXIT 
-          TAUOLD = USTAR(IJ)**2
-          USTOLD = USTAR(IJ)
+          DEL = USTAR-USTOLD
+          IF (ABS(DEL) < PCE_GC*USTAR) EXIT 
+          TAUOLD = USTAR**2
+          USTOLD = USTAR
         ENDDO
         ! protection just in case there is no convergence
         IF (ITER > NITER ) THEN
-          CDFG = CDM(UTOP(IJ))
-          USTAR(IJ) = UTOP(IJ)*SQRT(CDFG)
-          Z0MINRST = USTAR(IJ)**2 * ALPHA*GM1
-          Z0(IJ) = MAX(XNLEV/(EXP(XKUTOP/USTAR(IJ))-1.0_JWRB), Z0MINRST)
-          Z0B(IJ) = Z0MINRST
+          CDFG = CDM(UTOP)
+          USTAR = UTOP*SQRT(CDFG)
+          Z0MINRST = USTAR**2 * ALPHA*GM1
+          Z0 = MAX(XNLEV/(EXP(XKUTOP/USTAR)-1.0_JWRB), Z0MINRST)
+          Z0B = Z0MINRST
         ELSE
-          Z0(IJ) = MAX(XNLEV/(EXP(XKUTOP/USTAR(IJ))-1.0_JWRB), Z0MIN)
-          Z0B(IJ) = Z0(IJ)*SQRT(TAUUNR(IJ)/TAUOLD)
+          Z0 = MAX(XNLEV/(EXP(XKUTOP/USTAR)-1.0_JWRB), Z0MIN)
+          Z0B = Z0*SQRT(TAUUNR/TAUOLD)
         ENDIF
 
 !       Refine solution
-        X = TAUWEFF(IJ)/TAUOLD
+        X = TAUWEFF/TAUOLD
 
         IF (X < 0.99_JWRB) THEN
-          USTOLD = USTAR(IJ)
-          TAUOLD = MAX(USTOLD**2,TAUWEFF(IJ))
+          USTOLD = USTAR
+          TAUOLD = MAX(USTOLD**2,TAUWEFF)
 
           DO ITER=1,NITER
-            X = MIN(TAUWEFF(IJ)/TAUOLD, 0.99_JWRB)
+            X = MIN(TAUWEFF/TAUOLD, 0.99_JWRB)
             USTM1 = 1.0_JWRB/MAX(USTOLD,EPSUS)
             !!!! Limit how small z0 could become
             !!!! This is a bit of a compromise to limit very low Charnock for intermediate high winds (15 -25 m/s)
             !!!! It is not ideal !!!
-            Z0(IJ) = MAX(XNLEV/(EXP(MIN(XKUTOP/USTOLD, 50.0_JWRB))-1.0_JWRB), Z0MIN)
+            Z0 = MAX(XNLEV/(EXP(MIN(XKUTOP/USTOLD, 50.0_JWRB))-1.0_JWRB), Z0MIN)
 
-            TAUUNR(IJ) = STRESS_GC(ANG_GC(IJ), USTOLD, Z0(IJ), Z0MIN, HALP(IJ), RNFAC(IJ))
+            TAUUNR = STRESS_GC(ANG_GC, USTOLD, Z0, Z0MIN, HALP, RNFAC)
 
-            Z0B(IJ) = MAX( Z0(IJ)*SQRT(TAUUNR(IJ)/TAUOLD), ALPHAOG(IJ)*TAUOLD)
+            Z0B = MAX( Z0*SQRT(TAUUNR/TAUOLD), ALPHAOG*TAUOLD)
             Z0VIS = RNUM*USTM1
             HZ0VISO1MX = 0.5_JWRB*Z0VIS/(1.0_JWRB-X)
-            Z0(IJ) = HZ0VISO1MX+SQRT(HZ0VISO1MX**2+Z0B(IJ)**2/(1.0_JWRB-X))
+            Z0 = HZ0VISO1MX+SQRT(HZ0VISO1MX**2+Z0B**2/(1.0_JWRB-X))
 
-            XOLOGZ0= 1.0_JWRB/(XLOGXL-LOG(Z0(IJ)))
+            XOLOGZ0= 1.0_JWRB/(XLOGXL-LOG(Z0))
             F = USTOLD-XKUTOP*XOLOGZ0
-            ZZ = 2.0_JWRB*USTM1*(3.0_JWRB*Z0B(IJ)**2+0.5_JWRB*Z0VIS*Z0(IJ)-Z0(IJ)**2) &
-&                / (2.0_JWRB*Z0(IJ)**2*(1.0_JWRB-X)-Z0VIS*Z0(IJ))
+            ZZ = 2.0_JWRB*USTM1*(3.0_JWRB*Z0B**2+0.5_JWRB*Z0VIS*Z0-Z0**2) &
+&                / (2.0_JWRB*Z0**2*(1.0_JWRB-X)-Z0VIS*Z0)
 
             DELF= 1.0_JWRB-XKUTOP*XOLOGZ0**2*ZZ
-            IF (DELF /= 0.0_JWRB) USTAR(IJ) = USTOLD-F/DELF
+            IF (DELF /= 0.0_JWRB) USTAR = USTOLD-F/DELF
 
 !           CONVERGENCE ?
-            DEL = USTAR(IJ)-USTOLD
+            DEL = USTAR-USTOLD
 
-            IF (ABS(DEL) < PCE_GC*USTAR(IJ)) EXIT 
-            USTOLD = USTAR(IJ)
-            TAUOLD = MAX(USTOLD**2,TAUWEFF(IJ))
+            IF (ABS(DEL) < PCE_GC*USTAR) EXIT 
+            USTOLD = USTAR
+            TAUOLD = MAX(USTOLD**2,TAUWEFF)
           ENDDO
           ! protection just in case there is no convergence
           IF (ITER > NITER ) THEN
-            CDFG = CDM(UTOP(IJ))
-            USTAR(IJ) = UTOP(IJ)*SQRT(CDFG)
-            Z0MINRST = USTAR(IJ)**2 * ALPHA*GM1
-            Z0(IJ) = MAX(XNLEV/(EXP(XKUTOP/USTAR(IJ))-1.0_JWRB), Z0MINRST)
-            Z0B(IJ) = Z0MINRST
-            CHRNCK(IJ) = MAX(G*Z0(IJ)/USTAR(IJ)**2, ALPHAMIN)
+            CDFG = CDM(UTOP)
+            USTAR = UTOP*SQRT(CDFG)
+            Z0MINRST = USTAR**2 * ALPHA*GM1
+            Z0 = MAX(XNLEV/(EXP(XKUTOP/USTAR)-1.0_JWRB), Z0MINRST)
+            Z0B = Z0MINRST
+            CHRNCK = MAX(G*Z0/USTAR**2, ALPHAMIN)
           ELSE
-            CHRNCK(IJ) = MAX( G*(Z0B(IJ)/SQRT(1.0_JWRB-X))/MAX(USTAR(IJ),EPSUS)**2, ALPHAMIN)
+            CHRNCK = MAX( G*(Z0B/SQRT(1.0_JWRB-X))/MAX(USTAR,EPSUS)**2, ALPHAMIN)
           ENDIF
 
         ELSE
-          USTM1 = 1.0_JWRB/MAX(USTAR(IJ), EPSUS)
+          USTM1 = 1.0_JWRB/MAX(USTAR, EPSUS)
           Z0VIS = RNUM*USTM1
-          CHRNCK(IJ) = MAX(G*(Z0(IJ)-Z0VIS) * USTM1**2, ALPHAMIN)
+          CHRNCK = MAX(G*(Z0-Z0VIS) * USTM1**2, ALPHAMIN)
         ENDIF
 
-      ENDDO
 
+       ELSE
 
-ELSE
+        TAUWEFF = TAUWACT*US2TOTAUW
 
-      DO IJ = KIJS, KIJL
-        TAUWEFF(IJ) = TAUWACT(IJ)*US2TOTAUW
-      ENDDO
+        IF (LLCAPCHNK) THEN
+          CHARNOCK_MIN = CHNKMIN(UTOP)
+          XMIN = 0.15_JWRB*(ALPHA-CHARNOCK_MIN)
+          ALPHAOG = CHARNOCK_MIN*GM1
+        ELSE
+          XMIN= 0.0_JWRB
+          ALPHAOG= ALPHA*GM1
+        ENDIF
 
-      IF (LLCAPCHNK) THEN
-        DO IJ=KIJS,KIJL
-          CHARNOCK_MIN = CHNKMIN(UTOP(IJ))
-          XMIN(IJ) = 0.15_JWRB*(ALPHA-CHARNOCK_MIN)
-          ALPHAOG(IJ) = CHARNOCK_MIN*GM1
-        ENDDO
-      ELSE
-        DO IJ=KIJS,KIJL
-          XMIN(IJ)= 0.0_JWRB
-          ALPHAOG(IJ)= ALPHA*GM1
-        ENDDO
-      ENDIF
+        XKUTOP = XKAPPA * UTOP
 
-      DO IJ=KIJS,KIJL
-        XKUTOP = XKAPPA * UTOP(IJ)
-
-        USTOLD = (1-IUSFG)*UTOP(IJ)*SQRT(MIN(ACD+BCD*UTOP(IJ),CDMAX)) + IUSFG*USTAR(IJ)
-        TAUOLD = MAX(USTOLD**2,TAUWEFF(IJ))
-        USTAR(IJ) = SQRT(TAUOLD)
-        USTM1 = 1.0_JWRB/MAX(USTAR(IJ),EPSUS) 
+        USTOLD = (1-IUSFG)*UTOP*SQRT(MIN(ACD+BCD*UTOP,CDMAX)) + IUSFG*USTAR
+        TAUOLD = MAX(USTOLD**2,TAUWEFF)
+        USTAR = SQRT(TAUOLD)
+        USTM1 = 1.0_JWRB/MAX(USTAR,EPSUS) 
 
         DO ITER=1,NITER
-          X = MAX(TAUWACT(IJ)/TAUOLD,XMIN(IJ))
-          Z0CH = ALPHAOG(IJ)*TAUOLD/SQRT(1.0_JWRB-X)
+          X = MAX(TAUWACT/TAUOLD,XMIN)
+          Z0CH = ALPHAOG*TAUOLD/SQRT(1.0_JWRB-X)
           Z0VIS = RNUM*USTM1
           Z0TOT = Z0CH+Z0VIS
 
           XOLOGZ0= 1.0_JWRB/(XLOGXL-LOG(Z0TOT))
-          F = USTAR(IJ)-XKUTOP*XOLOGZ0
+          F = USTAR-XKUTOP*XOLOGZ0
           ZZ = USTM1*(Z0CH*(2.0_JWRB-TWOXMP1*X)/(1.0_JWRB-X)-Z0VIS)/Z0TOT
           DELF= 1.0_JWRB-XKUTOP*XOLOGZ0**2*ZZ
 
-          IF (DELF /= 0.0_JWRB) USTAR(IJ) = USTAR(IJ)-F/DELF
-          TAUNEW = MAX(USTAR(IJ)**2,TAUWEFF(IJ))
-          USTAR(IJ) = SQRT(TAUNEW)
+          IF (DELF /= 0.0_JWRB) USTAR = USTAR-F/DELF
+          TAUNEW = MAX(USTAR**2,TAUWEFF)
+          USTAR = SQRT(TAUNEW)
           IF (TAUNEW == TAUOLD) EXIT
-          USTM1 = 1.0_JWRB/MAX(USTAR(IJ),EPSUS)
+          USTM1 = 1.0_JWRB/MAX(USTAR,EPSUS)
           TAUOLD = TAUNEW
         ENDDO
 
-        Z0(IJ) = Z0CH
-        Z0B(IJ) = ALPHAOG(IJ)*TAUOLD
-        CHRNCK(IJ) = MAX(G*Z0(IJ)*USTM1**2, ALPHAMIN)
+        Z0 = Z0CH
+        Z0B = ALPHAOG*TAUOLD
+        CHRNCK = MAX(G*Z0*USTM1**2, ALPHAMIN)
 
-      ENDDO
 
-ENDIF
+       ENDIF
 
 IF (LHOOK) CALL DR_HOOK('TAUT_Z0',1,ZHOOK_HANDLE)
 

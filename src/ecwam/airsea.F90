@@ -92,16 +92,20 @@
 
       IF (ICODE_WND == 3) THEN
 
-        CALL TAUT_Z0 (KIJS, KIJL, IUSFG,          &
-     &                HALP, U10, U10DIR, TAUW, TAUWDIR, RNFAC, &
-     &                US, Z0, Z0B, CHRNCK)
+        DO IJ = KIJS, KIJL
+          CALL TAUT_Z0 (IUSFG,          &
+       &                HALP(IJ), U10(IJ), U10DIR(IJ), TAUW(IJ), TAUWDIR(IJ), RNFAC(IJ), &
+       &                US(IJ), Z0(IJ), Z0B(IJ), CHRNCK(IJ))
+        ENDDO
 
       ELSEIF (ICODE_WND == 1 .OR. ICODE_WND == 2) THEN
 
 !*    3. DETERMINE ROUGHNESS LENGTH (if needed).
 !        ---------------------------
 
-        CALL Z0WAVE (KIJS, KIJL, US, TAUW, U10, Z0, Z0B, CHRNCK)
+        DO IJ = KIJS, KIJL
+          CALL Z0WAVE (US(IJ), TAUW(IJ), U10(IJ), Z0(IJ), Z0B(IJ), CHRNCK(IJ))
+        ENDDO
 
 !*    3. DETERMINE U10 (if needed).
 !        ---------------------------
@@ -113,13 +117,6 @@
           U10 (IJ) = XKAPPAD * US (IJ) * (XLOGLEV - LOG (Z0 (IJ)))
           U10 (IJ) = MAX (U10 (IJ), WSPMIN)
         ENDDO
-
-      ELSE
-        WRITE (IU06, * ) ' ++++++++++++++++++++++++++++++++++++++++++'
-        WRITE (IU06, * ) ' + AIRSEA : INVALID VALUE OF ICODE_WND    +'
-        WRITE (IU06, * ) ' ICODE_WND = ', ICODE_WND
-        WRITE (IU06, * ) ' ++++++++++++++++++++++++++++++++++++++++++'
-        CALL ABORT1
       ENDIF
 
       IF (LHOOK) CALL DR_HOOK ('AIRSEA', 1, ZHOOK_HANDLE)
