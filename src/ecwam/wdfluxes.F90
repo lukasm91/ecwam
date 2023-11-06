@@ -61,7 +61,7 @@
       USE YOWCOUT  , ONLY : LWFLUXOUT 
       USE YOWFRED  , ONLY : FR       ,TH
       USE YOWPARAM , ONLY : NANG     ,NFRE
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
 
       USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
 
@@ -105,7 +105,6 @@
 
       REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: TAUW_LOC  ! TAUW should not be updated do use a local array
       REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: TAUWDIR_LOC  ! TAUW should not be updated do use a local array
-      REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: RAORW
       REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: EMEAN, FMEAN, HALP
       REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: EMEANWS, FMEANWS
       REAL(KIND=JWRB), DIMENSION(KIJS:KIJL) :: F1MEAN, AKMEAN, XKMEAN
@@ -141,10 +140,6 @@ IF (LHOOK) CALL DR_HOOK('WDFLUXES',0,ZHOOK_HANDLE)
       FMEANWS(:) = FMEAN(:)
       FLM(:,:) = 0.0_JWRB
 
-      DO IJ=KIJS,KIJL
-        RAORW(IJ) = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
-      ENDDO
-
       DO K=1,NANG
         DO IJ=KIJS,KIJL
           COSWDIF(IJ,K) = COS(TH(K)-WDWAVE(IJ))
@@ -158,7 +153,7 @@ IF (LHOOK) CALL DR_HOOK('WDFLUXES',0,ZHOOK_HANDLE)
      &             LUPDTUS,                                               &
      &             FL1,                                                   &
      &             WAVNUM, CINV, XK2CG,              &
-     &             WSWAVE, WDWAVE, AIRD, RAORW, WSTAR, CICOVER,           &
+     &             WSWAVE, WDWAVE, AIRD, WSTAR, CICOVER,           &
      &             COSWDIF, SINWDIF2,                                     &
      &             FMEAN, HALP, FMEANWS,                                  &
      &             FLM,                                                   &
@@ -171,7 +166,7 @@ IF (LHOOK) CALL DR_HOOK('WDFLUXES',0,ZHOOK_HANDLE)
         CALL SDISSIP (KIJS, KIJL, FL1 ,FLD, SL,                 &
      &                INDEP, WAVNUM, XK2CG,&
      &                EMEAN, F1MEAN, XKMEAN,                    &
-     &                UFRIC, COSWDIF, RAORW) 
+     &                UFRIC, COSWDIF, AIRD) 
 
         IF (.NOT. LWVFLX_SNL) THEN
           CALL WNFLUXES (KIJS, KIJL,                        &

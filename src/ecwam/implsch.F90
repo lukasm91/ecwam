@@ -82,7 +82,7 @@ SUBROUTINE IMPLSCH_FIRST_PART (KIJS, KIJL, FL1,                         &
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
       USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
 
@@ -265,7 +265,7 @@ SUBROUTINE IMPLSCH_SINFLX (KIJS, KIJL, FL1,                         &
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
       USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
 
@@ -296,7 +296,7 @@ SUBROUTINE IMPLSCH_SINFLX (KIJS, KIJL, FL1,                         &
       REAL(KIND=JWRB) :: DELT, DELTM, XIMP, DELT5
       REAL(KIND=JWRB) :: GTEMP1, GTEMP2, FLHAB
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: RAORW, HALP
+      REAL(KIND=JWRB), DIMENSION(KIJL) :: HALP
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: FMEANWS, EMEAN, FMEAN
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: F1MEAN, XKMEAN
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: PHIWA
@@ -328,11 +328,6 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 
       LCFLX=LWFLUX.OR.LWFLUXOUT.OR.LWNEMOCOU
 
-
-      DO IJ=KIJS,KIJL
-        RAORW(IJ) = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
-      ENDDO
-
 ! ----------------------------------------------------------------------
 
 !*    2.3 COMPUTATION OF SOURCE FUNCTIONS.
@@ -349,7 +344,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
      &               FL1,                                           &
      &               WAVNUM, CINV, XK2CG,      &
      &               WSWAVE, WDWAVE, AIRD,     &
-     &               RAORW, WSTAR, CICOVER,           &
+     &               WSTAR, CICOVER,           &
      &               COSWDIF, SINWDIF2,                             &
      &               FMEAN, HALP, FMEANWS,                          &
      &               FLM,                                           &
@@ -390,7 +385,7 @@ SUBROUTINE IMPLSCH_SDISSIP (KIJS, KIJL, FL1,                         &
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
       USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
 
@@ -421,7 +416,7 @@ SUBROUTINE IMPLSCH_SDISSIP (KIJS, KIJL, FL1,                         &
       REAL(KIND=JWRB) :: DELT, DELTM, XIMP, DELT5
       REAL(KIND=JWRB) :: GTEMP1, GTEMP2, FLHAB
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: RAORW, HALP
+      REAL(KIND=JWRB), DIMENSION(KIJL) :: HALP
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: FMEANWS, EMEAN, FMEAN
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: F1MEAN, XKMEAN
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(INOUT) :: PHIWA
@@ -453,11 +448,6 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 
       LCFLX=LWFLUX.OR.LWFLUXOUT.OR.LWNEMOCOU
 
-
-      DO IJ=KIJS,KIJL
-        RAORW(IJ) = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
-      ENDDO
-
 ! ----------------------------------------------------------------------
 
 !*    2.3 COMPUTATION OF SOURCE FUNCTIONS.
@@ -469,7 +459,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
       CALL SDISSIP (KIJS, KIJL, FL1 ,FLD, SL,                 &
      &              INDEP, WAVNUM, XK2CG,&
      &              EMEAN, F1MEAN, XKMEAN,                    &
-     &              UFRIC, COSWDIF, RAORW)
+     &              UFRIC, COSWDIF, AIRD)
 
 !     Save source term contributions relevant for the calculation of ocean fluxes
       IF (LCFLX .AND. .NOT.LWVFLX_SNL) THEN
@@ -606,7 +596,7 @@ SUBROUTINE IMPLSCH_AFTER_SNONLIN (KIJS, KIJL, FL1,                         &
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
       USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
 
@@ -898,7 +888,7 @@ SUBROUTINE IMPLSCH (KIJS, KIJL, FL1,                         &
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
       USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
-      USE YOWPCONS , ONLY : WSEMEAN_MIN, ROWATERM1 
+      USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
 
@@ -954,7 +944,6 @@ SUBROUTINE IMPLSCH (KIJS, KIJL, FL1,                         &
       REAL(KIND=JWRB) :: DELT, DELTM, XIMP, DELT5
       REAL(KIND=JWRB) :: GTEMP1, GTEMP2, FLHAB
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: RAORW
       REAL(KIND=JWRB), DIMENSION(KIJL) :: EMEAN, FMEAN, HALP
       REAL(KIND=JWRB), DIMENSION(KIJL) :: EMEANWS, FMEANWS, USFM
       REAL(KIND=JWRB), DIMENSION(KIJL) :: F1MEAN, AKMEAN, XKMEAN 
@@ -987,11 +976,6 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
       DELT5 = XIMP*DELT
 
       LCFLX=LWFLUX.OR.LWFLUXOUT.OR.LWNEMOCOU
-
-
-      DO IJ=KIJS,KIJL
-        RAORW(IJ) = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
-      ENDDO
 
       DO K=1,NANG
         DO IJ=KIJS,KIJL
@@ -1063,7 +1047,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
      &               FL1,                                           &
      &               WAVNUM, CINV, XK2CG,      &
      &               WSWAVE, WDWAVE, AIRD,     &
-     &               RAORW, WSTAR, CICOVER,           &
+     &               WSTAR, CICOVER,           &
      &               COSWDIF, SINWDIF2,                             &
      &               FMEAN, HALP, FMEANWS,                          &
      &               FLM,                                           &
@@ -1080,7 +1064,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
       CALL SDISSIP (KIJS, KIJL, FL1 ,FLD, SL,                 &
      &              INDEP, WAVNUM, XK2CG,&
      &              EMEAN, F1MEAN, XKMEAN,                    &
-     &              UFRIC, COSWDIF, RAORW)
+     &              UFRIC, COSWDIF, AIRD)
 
 !     Save source term contributions relevant for the calculation of ocean fluxes
       IF (LCFLX .AND. .NOT.LWVFLX_SNL) THEN

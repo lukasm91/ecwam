@@ -9,7 +9,7 @@
 
       SUBROUTINE SDISSIP_ARD (KIJS, KIJL, FL1, FLD, SL,          &
      &                        INDEP, WAVNUM, XK2CG,              &
-     &                        UFRIC, COSWDIF, RAORW)
+     &                        UFRIC, COSWDIF, AIRD)
 ! ----------------------------------------------------------------------
 
 !**** *SDISSIP_ARD* - COMPUTATION OF DISSIPATION SOURCE FUNCTION.
@@ -29,7 +29,7 @@
 
 !       *CALL* *SDISSIP_ARD (KIJS, KIJL, FL1, FLD,SL,*
 !                            INDEP, WAVNUM, XK2CG,
-!                            UFRIC, COSWDIF, RAORW)*
+!                            UFRIC, COSWDIF, AIRD)*
 !          *KIJS*   - INDEX OF FIRST GRIDPOINT
 !          *KIJL*   - INDEX OF LAST GRIDPOINT
 !          *FL1*    - SPECTRUM.
@@ -39,7 +39,7 @@
 !          *WAVNUM* - WAVE NUMBER
 !          *XK2CG*  - (WAVE NUMBER)**2 * GROUP SPEED
 !          *UFRIC*  - FRICTION VELOCITY IN M/S.
-!          *RAORW*  - RATIO AIR DENSITY TO WATER DENSITY
+!          *AIRD*  - RATIO AIR DENSITY TO WATER DENSITY
 !          *COSWDIF*-  COS(TH(K)-WDWAVE(IJ))
 
 
@@ -71,6 +71,7 @@
 &                  INDICESSAT, SATWEIGHTS, CUMULW
 
       USE YOMHOOK  , ONLY : LHOOK   ,DR_HOOK, JPHOOK
+      USE YOWPCONS , ONLY : ROWATERM1 
 
 ! ----------------------------------------------------------------------
 
@@ -82,7 +83,7 @@
       REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FLD, SL
       INTEGER(KIND=JWIM), DIMENSION(KIJL), INTENT(IN) :: INDEP
       REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM, XK2CG 
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: UFRIC, RAORW 
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: UFRIC, AIRD 
       REAL(KIND=JWRB), DIMENSION(KIJL, NANG), INTENT(IN) :: COSWDIF 
 
 
@@ -93,7 +94,7 @@
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
 
 
-      REAL(KIND=JWRB) :: SSDSC2_SIG 
+      REAL(KIND=JWRB) :: SSDSC2_SIG, RAORW
       REAL(KIND=JWRB), DIMENSION(KIJL) :: FACTURB, BTH, BTH0
       REAL(KIND=JWRB), DIMENSION(KIJL,NANG_PARAM) :: SCUMUL, D 
 
@@ -194,7 +195,8 @@
         IF (SSDSC5 /= 0.0_JWRB) THEN
           TMP01 = 2._JWRB*SSDSC5/G
           DO IJ=KIJS,KIJL
-            FACTURB(IJ) = TMP01*RAORW(IJ)*UFRIC(IJ)*UFRIC(IJ)
+            RAORW = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
+            FACTURB(IJ) = TMP01*RAORW*UFRIC(IJ)*UFRIC(IJ)
           ENDDO
             DO K=1,NANG
               DO IJ=KIJS,KIJL

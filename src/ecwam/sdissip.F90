@@ -10,7 +10,7 @@
       SUBROUTINE SDISSIP (KIJS, KIJL, FL1, FLD, SL,  &
      &                    INDEP, WAVNUM, XK2CG,      &
      &                    EMEAN, F1MEAN, XKMEAN,     &
-     &                    UFRIC, COSWDIF, RAORW)
+     &                    UFRIC, COSWDIF, AIRD)
 ! ----------------------------------------------------------------------
 
 !**** *SDISSIP* - COMPUTATION OF DEEP WATER DISSIPATION SOURCE FUNCTION.
@@ -65,7 +65,7 @@
       INTEGER(KIND=JWIM), DIMENSION(KIJL), INTENT(IN) :: INDEP
       REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM, XK2CG
       REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: EMEAN, F1MEAN, XKMEAN
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: UFRIC, RAORW
+      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: UFRIC, AIRD
       REAL(KIND=JWRB), DIMENSION(KIJL, NANG), INTENT(IN) :: COSWDIF
 
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
@@ -83,7 +83,7 @@
       CASE(1) 
          CALL SDISSIP_ARD (KIJS, KIJL, FL1 ,FLD, SL,   &
      &                     INDEP, WAVNUM, XK2CG,       &
-     &                     UFRIC, COSWDIF, RAORW)
+     &                     UFRIC, COSWDIF, AIRD)
       END SELECT 
 
       IF (LHOOK) CALL DR_HOOK('SDISSIP',1,ZHOOK_HANDLE)
