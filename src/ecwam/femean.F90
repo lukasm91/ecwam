@@ -123,3 +123,63 @@
       IF (LHOOK) CALL DR_HOOK('FEMEAN',1,ZHOOK_HANDLE)
 
       END SUBROUTINE FEMEAN
+      SUBROUTINE FEMEAN_PW (IDX, KIJS, KIJL, F, EM, FM)
+!$loki routine seq
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWFRED  , ONLY : FR       ,DFIM     ,DFIMOFR  ,DELTH    ,    &
+     &                      WETAIL    ,FRTAIL
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPCONS , ONLY : G        ,ZPI      ,EPSMIN
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: F
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      REAL(KIND=JWRB), INTENT(OUT) :: EM, FM
+
+
+      INTEGER(KIND=JWIM) :: M, K
+      REAL(KIND=JWRB) :: DELT25, DELT2, DEL2
+      REAL(KIND=JWRB) :: TEMP2
+
+! ----------------------------------------------------------------------
+
+!*    1. INITIALISE MEAN FREQUENCY ARRAY AND TAIL FACTOR.
+!        ------------------------------------------------
+
+
+      DELT25 = WETAIL*FR(NFRE)*DELTH
+      DELT2 = FRTAIL*DELTH
+      EM = 0.0_JWRB
+      FM = 0.0_JWRB
+
+!*    2. INTEGRATE OVER FREQUENCIES AND DIRECTIONS.
+!        ------------------------------------------
+
+      DO M=1,NFRE
+        K=1
+        TEMP2 = MAX(F(IDX,K,M), EPSMIN)
+        DO K=2,NANG
+          TEMP2 = TEMP2+ MAX(F(IDX,K,M), EPSMIN)
+        ENDDO
+        EM = EM+TEMP2*DFIM(M)
+        FM = FM+DFIMOFR(M)*TEMP2
+      ENDDO
+
+
+!*    3. ADD TAIL CORRECTION TO MEAN FREQUENCY AND
+!*       NORMALIZE WITH TOTAL ENERGY.
+!        ------------------------------------------
+
+      EM = EM+DELT25*TEMP2
+      FM = FM+DELT2*TEMP2
+      FM = EM/FM
+      FM = MAX(FM,FR(1))
+
+      END SUBROUTINE FEMEAN_PW

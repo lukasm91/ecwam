@@ -102,3 +102,51 @@
       IF (LHOOK) CALL DR_HOOK('MEANSQS_LF',1,ZHOOK_HANDLE)
 
       END SUBROUTINE MEANSQS_LF
+      SUBROUTINE MEANSQS_LF_PW(IDX, NFRE_EFF, KIJS, KIJL, F, WAVNUM, XMSS)
+!$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWPCONS , ONLY : G        ,GM1      ,ZPI
+      USE YOWFRED  , ONLY : FR       ,ZPIFR    ,DFIM
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: NFRE_EFF
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: F
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM 
+      REAL(KIND=JWRB), INTENT(OUT) :: XMSS 
+
+
+      INTEGER(KIND=JWIM) :: M, K, KFRE
+
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB), DIMENSION(NFRE) :: FD
+      REAL(KIND=JWRB) :: TEMP1, TEMP2
+
+
+!*    2. INTEGRATE OVER FREQUENCIES AND DIRECTIONS.
+!        ------------------------------------------
+
+      KFRE=MIN(NFRE_EFF, NFRE)
+
+      XMSS = 0.0_JWRB
+
+!*    2.2 SHALLOW WATER INTEGRATION.
+!         --------------------------
+
+        DO M = 1, KFRE
+          TEMP1 = DFIM(M)*WAVNUM(IDX,M)**2
+          TEMP2 = 0.0_JWRB
+          DO K = 1, NANG
+            TEMP2 = TEMP2+F(IDX,K,M)
+          ENDDO
+          XMSS = XMSS+TEMP1*TEMP2
+        ENDDO
+
+      END SUBROUTINE MEANSQS_LF_PW
