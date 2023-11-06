@@ -110,3 +110,64 @@
       IF (LHOOK) CALL DR_HOOK('FRCUTINDEX',1,ZHOOK_HANDLE)
 
       END SUBROUTINE FRCUTINDEX
+      SUBROUTINE FRCUTINDEX_PW (IDX, KIJL, FM, FMWS, UFRIC, CICOVER,     &
+     &                       MIJ, RHOWGDFTH)
+              !$loki routine seq
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWFRED  , ONLY : FR       ,DFIM       ,FRATIO   ,FLOGSPRDM1, &
+     &                ZPIFR,                                            &
+     &                DELTH          ,RHOWG_DFIM ,FRIC
+      USE YOWICE   , ONLY : CITHRSH_TAIL
+      USE YOWPARAM , ONLY : NFRE
+      USE YOWPCONS , ONLY : G        ,EPSMIN
+      USE YOWPHYS  , ONLY : TAILFACTOR, TAILFACTOR_PM
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
+      INTEGER(KIND=JWIM), INTENT(OUT) :: MIJ
+      REAL(KIND=JWRB),INTENT(IN) :: FM, FMWS, UFRIC, CICOVER
+      REAL(KIND=JWRB),DIMENSION(KIJL,NFRE), INTENT(OUT) :: RHOWGDFTH 
+
+
+      INTEGER(KIND=JWIM) :: M
+
+      REAL(KIND=JWRB) :: FPMH, FPPM, FM2, FPM, FPM4
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+
+! ----------------------------------------------------------------------
+
+!*    COMPUTE LAST FREQUENCY INDEX OF PROGNOSTIC PART OF SPECTRUM.
+!*    FREQUENCIES LE MAX(TAILFACTOR*MAX(FMNWS,FM),TAILFACTOR_PM*FPM),
+!*    WHERE FPM IS THE PIERSON-MOSKOWITZ FREQUENCY BASED ON FRICTION
+!*    VELOCITY. (FPM=G/(FRIC*ZPI*USTAR))
+!     ------------------------------------------------------------
+
+      FPMH = TAILFACTOR/FR(1)
+      FPPM = TAILFACTOR_PM*G/(FRIC*ZPIFR(1))
+
+      IF (CICOVER <= CITHRSH_TAIL) THEN
+        FM2 = MAX(FMWS,FM)*FPMH
+        FPM = FPPM/MAX(UFRIC,EPSMIN)
+        FPM4 = MAX(FM2,FPM)
+        MIJ = NINT(LOG10(FPM4)*FLOGSPRDM1)+1
+        MIJ = MIN(MAX(1,MIJ),NFRE)
+      ELSE
+        MIJ = NFRE
+      ENDIF
+
+!     SET RHOWGDFTH
+      DO M=1,MIJ
+        RHOWGDFTH(IDX,M) = RHOWG_DFIM(M)
+      ENDDO
+      IF (MIJ /= NFRE) RHOWGDFTH(IDX,MIJ)=0.5_JWRB*RHOWGDFTH(IDX,MIJ)
+      DO M=MIJ+1,NFRE
+        RHOWGDFTH(IDX,M) = 0.0_JWRB
+      ENDDO
+
+      END SUBROUTINE FRCUTINDEX_PW
