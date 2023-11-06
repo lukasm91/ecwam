@@ -301,3 +301,209 @@ IF (LHOOK) CALL DR_HOOK('TAU_PHI_HF',0,ZHOOK_HANDLE)
 IF (LHOOK) CALL DR_HOOK('TAU_PHI_HF',1,ZHOOK_HANDLE)
 
 END SUBROUTINE TAU_PHI_HF
+
+SUBROUTINE TAU_PHI_HF_PW(IDX, KIJS, KIJL, MIJ, LTAUWSHELTER, UFRIC, Z0M, &
+ &                    FL1, AIRD, RNFAC,                          &
+ &                    COSWDIF, SINWDIF2,                         &
+ &                    UST, TAUHF, PHIHF, LLPHIHF)
+ !$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWCOUP  , ONLY : X0TAUHF, JTOT_TAUHF, WTAUHF, LLGCBZ0, LLNORMAGAM 
+      USE YOWFRED  , ONLY : ZPIFR  , FR5,   TH    ,DELTH
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPCONS , ONLY : G      , GM1       ,ZPI    , ZPI4GM1,  ZPI4GM2
+      USE YOWPHYS  , ONLY : ZALP   , XKAPPA    ,TAUWSHELTER, GAMNCONST
+      USE YOWTEST  , ONLY : IU06
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL, IDX
+      INTEGER(KIND=JWIM), INTENT(IN) :: MIJ
+      LOGICAL, INTENT(IN) :: LTAUWSHELTER
+      REAL(KIND=JWRB), INTENT(IN) :: UFRIC, Z0M
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), INTENT(IN) :: AIRD, RNFAC
+      REAL(KIND=JWRB), DIMENSION(KIJL, NANG), INTENT(IN) :: COSWDIF, SINWDIF2
+      REAL(KIND=JWRB), INTENT(INOUT) :: UST
+      REAL(KIND=JWRB), INTENT(OUT) :: TAUHF, PHIHF
+      LOGICAL, INTENT(IN) :: LLPHIHF
+
+
+      INTEGER(KIND=JWIM) :: J, K
+
+      REAL(KIND=JWRB), PARAMETER :: ZSUPMAX = 0.0_JWRB  !  LOG(1.)
+      REAL(KIND=JWRB) :: OMEGA, OMEGACC
+      REAL(KIND=JWRB) :: X0G
+      REAL(KIND=JWRB) :: YC, Y, CM1, ZX, ZARG, ZLOG, ZBETA
+      REAL(KIND=JWRB) :: FNC, FNC2
+      REAL(KIND=JWRB) :: GAMNORMA ! RENORMALISATION FACTOR OF THE GROWTH RATE
+      REAL(KIND=JWRB) :: ZNZ, CONFG
+      REAL(KIND=JWRB) :: COSW, FCOSW2 
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+
+      REAL(KIND=JWRB) :: XKS, OMS
+      REAL(KIND=JWRB) :: SQRTZ0OG, ZSUP, ZINF, DELZ
+      REAL(KIND=JWRB) :: TAUL, XLOGGZ0, SQRTGZ0
+      REAL(KIND=JWRB) :: USTPH
+      REAL(KIND=JWRB) :: CONST1, CONST2, CONSTTAU, CONSTPHI
+      REAL(KIND=JWRB) :: F1DCOS2, F1DCOS3 
+      REAL(KIND=JWRB) :: F1D, F1DSIN2 
+
+! ----------------------------------------------------------------------
+
+      !IF (LLGCBZ0) THEN
+      !  CALL OMEGAGC(KIJS, KIJL, UFRIC, NS, XKS, OMS)
+      !ENDIF
+
+!     See INIT_X0TAUHF
+      X0G=X0TAUHF*G
+
+      IF (LLPHIHF) USTPH = UST
+
+!*  COMPUTE THE INTEGRALS 
+!   ---------------------
+
+      XLOGGZ0 = LOG(G*Z0M)
+      OMEGACC = MAX(ZPIFR(MIJ), X0G/UST)
+      SQRTZ0OG  = SQRT(Z0M*GM1)
+      SQRTGZ0 = 1.0_JWRB/SQRTZ0OG
+      YC = OMEGACC*SQRTZ0OG
+      ZINF = LOG(YC)
+
+      CONSTTAU = ZPI4GM2*FR5(MIJ)
+
+      K=1
+      COSW     = MAX(COSWDIF(IDX,K), 0.0_JWRB)
+      FCOSW2   = FL1(IDX,K,MIJ)*COSW**2
+      F1DCOS3 = FCOSW2*COSW
+      F1DCOS2 = FCOSW2
+      F1DSIN2 = FL1(IDX,K,MIJ)*SINWDIF2(IDX,K)
+      F1D = FL1(IDX,K,MIJ)
+      DO K=2,NANG
+        COSW     = MAX(COSWDIF(IDX,K), 0.0_JWRB)
+        FCOSW2   = FL1(IDX,K,MIJ)*COSW**2
+        F1DCOS3 = F1DCOS3 + FCOSW2*COSW
+        F1DCOS2 = F1DCOS2 + FCOSW2 
+        F1DSIN2 = F1DSIN2 + FL1(IDX,K,MIJ)*SINWDIF2(IDX,K)
+        F1D = F1D + FL1(IDX,K,MIJ)
+      ENDDO
+      F1DCOS3 = DELTH*F1DCOS3
+      F1DCOS2 = DELTH*F1DCOS2
+      F1DSIN2 = DELTH*F1DSIN2
+      F1D = DELTH*F1D
+
+      IF (LLNORMAGAM) THEN
+        CONFG = GAMNCONST*FR5(MIJ)*RNFAC*SQRTGZ0
+        CONST1 = CONFG*F1DSIN2
+        CONST2 = CONFG*F1D
+      ELSE
+        CONST1 = 0.0_JWRB
+        CONST2 = 0.0_JWRB
+      ENDIF
+
+
+!   TAUHF :
+      IF (LLGCBZ0) THEN
+        ZSUP = MIN(LOG(OMS*SQRTZ0OG),ZSUPMAX)
+      ELSE
+        ZSUP = ZSUPMAX
+      ENDIF
+
+      TAUL = UST**2
+      DELZ = MAX((ZSUP-ZINF)/REAL(JTOT_TAUHF-1,JWRB),0.0_JWRB)
+      TAUHF = 0.0_JWRB
+
+   ! Intergrals are integrated following a change of variable : Z=LOG(Y)
+      IF ( LTAUWSHELTER ) THEN
+        DO J=1,JTOT_TAUHF
+          Y         = EXP(ZINF+REAL(J-1,JWRB)*DELZ)
+          OMEGA     = Y*SQRTGZ0
+          CM1       = OMEGA*GM1
+          ZX        = UST*CM1 + ZALP
+          ZARG      = XKAPPA/ZX
+          ZLOG      = XLOGGZ0+2.0_JWRB*LOG(CM1)+ZARG 
+          ZLOG      = MIN(ZLOG, 0.0_JWRB)
+          ZBETA     = ZLOG**4 * EXP(ZLOG)
+          ZNZ       = ZBETA*UST*Y
+          GAMNORMA  = (1.0_JWRB + CONST1*ZNZ) / (1.0_JWRB + CONST2*ZNZ)
+          FNC2      = F1DCOS3*CONSTTAU* ZBETA*TAUL*WTAUHF(J)*DELZ * GAMNORMA
+          TAUL  = MAX(TAUL-TAUWSHELTER*FNC2, 0.0_JWRB)
+
+          UST   = SQRT(TAUL)
+          TAUHF = TAUHF + FNC2
+        ENDDO
+      ELSE
+        DO J=1,JTOT_TAUHF
+          Y         = EXP(ZINF+REAL(J-1,JWRB)*DELZ)
+          OMEGA     = Y*SQRTGZ0
+          CM1       = OMEGA*GM1
+          ZX        = UST*CM1 + ZALP
+          ZARG      = XKAPPA/ZX
+          ZLOG      = XLOGGZ0+2.0_JWRB*LOG(CM1)+ZARG 
+          ZLOG      = MIN(ZLOG, 0.0_JWRB)
+          ZBETA     = ZLOG**4 * EXP(ZLOG)
+          FNC2      = ZBETA*WTAUHF(J)
+          ZNZ       = ZBETA*UST*Y
+          GAMNORMA  = (1.0_JWRB + CONST1*ZNZ) / (1.0_JWRB + CONST2*ZNZ)
+          TAUHF = TAUHF + FNC2 * GAMNORMA
+        ENDDO
+        TAUHF = F1DCOS3*CONSTTAU * TAUL*TAUHF*DELZ
+      ENDIF
+
+
+      PHIHF = 0.0_JWRB
+      IF (LLPHIHF) THEN
+!     PHIHF:
+!     We are neglecting the gravity-capillary contribution 
+!     Recompute DELZ over the full interval
+        TAUL = USTPH**2
+        ZSUP = ZSUPMAX
+        DELZ = MAX((ZSUP-ZINF)/REAL(JTOT_TAUHF-1,JWRB), 0.0_JWRB)
+
+        CONSTPHI = AIRD*ZPI4GM1*FR5(MIJ)
+
+     ! Intergrals are integrated following a change of variable : Z=LOG(Y)
+        IF( LTAUWSHELTER ) THEN
+          DO J=1,JTOT_TAUHF
+            Y         = EXP(ZINF+REAL(J-1,JWRB)*DELZ)
+            OMEGA     = Y*SQRTGZ0
+            CM1       = OMEGA*GM1
+            ZX        = USTPH*CM1 + ZALP
+            ZARG      = XKAPPA/ZX
+            ZLOG      = XLOGGZ0+2.0_JWRB*LOG(CM1)+ZARG 
+            ZLOG      = MIN(ZLOG, 0.0_JWRB)
+            ZBETA     = ZLOG**4 * EXP(ZLOG)
+            ZNZ       = ZBETA*UST*Y
+            GAMNORMA  = (1.0_JWRB + CONST1*ZNZ) / (1.0_JWRB + CONST2*ZNZ)
+            FNC2      = ZBETA*TAUL*WTAUHF(J)*DELZ * GAMNORMA
+            TAUL  = MAX(TAUL-TAUWSHELTER*F1DCOS3*CONSTTAU*FNC2, 0.0_JWRB)
+            USTPH   = SQRT(TAUL)
+            PHIHF = PHIHF + FNC2/Y
+          ENDDO
+          PHIHF = F1DCOS2*CONSTPHI * SQRTZ0OG*PHIHF
+        ELSE
+          DO J=1,JTOT_TAUHF
+            Y         = EXP(ZINF+REAL(J-1,JWRB)*DELZ)
+            OMEGA     = Y*SQRTGZ0
+            CM1       = OMEGA*GM1
+            ZX        = USTPH*CM1 + ZALP
+            ZARG      = XKAPPA/ZX
+            ZLOG      = XLOGGZ0+2.0_JWRB*LOG(CM1)+ZARG 
+            ZLOG      = MIN(ZLOG, 0.0_JWRB)
+            ZBETA     = ZLOG**4 * EXP(ZLOG)
+            ZNZ       = ZBETA*UST*Y
+            GAMNORMA  = (1.0_JWRB + CONST1*ZNZ) / (1.0_JWRB + CONST2*ZNZ)
+            FNC2      = ZBETA*WTAUHF(J) * GAMNORMA
+            PHIHF = PHIHF + FNC2/Y
+          ENDDO
+          PHIHF = F1DCOS2*CONSTPHI * SQRTZ0OG*TAUL*PHIHF*DELZ
+        ENDIF
+      ENDIF
+
+END SUBROUTINE TAU_PHI_HF_PW

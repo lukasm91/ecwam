@@ -211,10 +211,12 @@
         ENDDO
       ENDIF
 
-      CALL TAU_PHI_HF(KIJS, KIJL, MIJ, LTAUWSHELTER, UFRIC, Z0M, &
-     &                FL1, AIRD, RNFAC,                          &
-     &                COSWDIF, SINWDIF2,                         &
-     &                UST, TAUHF, PHIHF, LLPHIWA)
+      DO IJ=KIJS,KIJL
+        CALL TAU_PHI_HF_PW(IJ, KIJS, KIJL, MIJ(IJ), LTAUWSHELTER, UFRIC(IJ), Z0M(IJ), &
+       &                FL1, AIRD(IJ), RNFAC(IJ), &
+       &                COSWDIF, SINWDIF2, &
+       &                UST(IJ), TAUHF(IJ), PHIHF(IJ), LLPHIWA)
+      ENDDO
 
       DO IJ=KIJS,KIJL
         XSTRESS(IJ) = XSTRESS(IJ) + TAUHF(IJ)*SIN(USDIRP(IJ))
