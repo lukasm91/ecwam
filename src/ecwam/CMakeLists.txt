@@ -141,6 +141,7 @@ list( APPEND ecwam_srcs
   newwind.F90
   nlweigt.F90
   notim.F90
+  omegagc.F90
   out_onegrdpt.F90
   out_onegrdpt_sp.F90
   outbc.F90
@@ -332,7 +333,6 @@ list(APPEND phys_srcs
      implsch.F90
      meansqs_lf.F90
      ns_gc.F90
-     omegagc.F90
      peak_ang.F90
      sbottom.F90
      sdepthlim.F90
