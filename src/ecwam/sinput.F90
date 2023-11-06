@@ -95,6 +95,7 @@
 
 
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      INTEGER(JWIM) :: IJ
 ! ----------------------------------------------------------------------
 
       IF (LHOOK) CALL DR_HOOK('SINPUT',0,ZHOOK_HANDLE)
@@ -108,12 +109,14 @@
      &                   RAORW, WSTAR, RNFAC,            &
      &                   FLD, SL, SPOS, XLLWS)
       CASE(1) 
-        CALL SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1,  &
-     &                   WAVNUM, CINV, XK2CG,            &
-     &                   WDWAVE, WSWAVE, UFRIC, Z0M,     &
-     &                   COSWDIF, SINWDIF2,              & 
-     &                   RAORW, WSTAR, RNFAC,            &
-     &                   FLD, SL, SPOS, XLLWS)
+        DO IJ = KIJS,KIJL
+          CALL SINPUT_ARD (IJ, NGST, LLSNEG, KIJS, KIJL, FL1,  &
+     &                     WAVNUM, CINV, XK2CG,            &
+     &                     WDWAVE(IJ), WSWAVE(IJ), UFRIC(IJ), Z0M(IJ),     &
+     &                     COSWDIF, SINWDIF2,              & 
+     &                     RAORW(IJ), WSTAR(IJ), RNFAC(IJ),            &
+     &                     FLD, SL, SPOS, XLLWS)
+        ENDDO
       END SELECT 
 
       IF (LHOOK) CALL DR_HOOK('SINPUT',1,ZHOOK_HANDLE)

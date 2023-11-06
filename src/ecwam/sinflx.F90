@@ -157,12 +157,14 @@ ELSE
   LLSNEG = .TRUE.
 ENDIF
 
-CALL SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
-&            WAVNUM, CINV, XK2CG,           &
-&            WDWAVE, WSWAVE, UFRIC, Z0M,    &
-&            COSWDIF, SINWDIF2,             &
-&            RAORW, WSTAR, RNFAC,           &
-&            FLD, SL, SPOS, XLLWS) 
+DO IJ=KIJS,KIJL
+  CALL SINPUT_ARD (IJ, NGST, LLSNEG, KIJS, KIJL, FL1, &
+  &            WAVNUM, CINV, XK2CG,           &
+  &            WDWAVE(IJ), WSWAVE(IJ), UFRIC(IJ), Z0M(IJ),    &
+  &            COSWDIF, SINWDIF2,             &
+  &            RAORW(IJ), WSTAR(IJ), RNFAC(IJ),           &
+  &            FLD, SL, SPOS, XLLWS) 
+ENDDO
 
 
 ! MEAN FREQUENCY CHARACTERISTIC FOR WIND SEA
