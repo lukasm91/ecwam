@@ -176,12 +176,14 @@ DO IJ=KIJS,KIJL
 ENDDO
 
 ! UPDATE TAUW
-CALL STRESSO (KIJS, KIJL, MIJ, RHOWGDFTH,          &
-&             FL1, SL, SPOS,                       &
-&             CINV,                                &
-&             WDWAVE, UFRIC, Z0M, AIRD, RNFAC,     &
-&             COSWDIF, SINWDIF2,                   &
-&             TAUW, TAUWDIR, PHIWA, LLPHIWA) 
+DO IJ=KIJS,KIJL
+  CALL STRESSO_PW (IJ, KIJS, KIJL, MIJ(IJ), RHOWGDFTH,          &
+  &             FL1, SL, SPOS,                       &
+  &             CINV,                                &
+  &             WDWAVE(IJ), UFRIC(IJ), Z0M(IJ), AIRD(IJ), RNFAC(IJ),     &
+  &             COSWDIF, SINWDIF2,                   &
+  &             TAUW(IJ), TAUWDIR(IJ), PHIWA(IJ), LLPHIWA) 
+ENDDO
 
 ! ----------------------------------------------------------------------
 
