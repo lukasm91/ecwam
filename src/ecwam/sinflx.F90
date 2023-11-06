@@ -43,7 +43,7 @@ SUBROUTINE SINFLX (ICALL, NCALL, KIJS, KIJL,                       &
 #include "femeanws.intfb.h"
 #include "frcutindex.intfb.h"
 #include "halphap.intfb.h"
-#include "sinput.intfb.h"
+#include "sinput_ard.intfb.h"
 #include "stresso.intfb.h"
 
 INTEGER(KIND=JWIM), INTENT(IN) :: ICALL  !! CALL NUMBER.
@@ -157,7 +157,7 @@ ELSE
   LLSNEG = .TRUE.
 ENDIF
 
-CALL SINPUT (NGST, LLSNEG, KIJS, KIJL, FL1, &
+CALL SINPUT_ARD (NGST, LLSNEG, KIJS, KIJL, FL1, &
 &            WAVNUM, CINV, XK2CG,           &
 &            WDWAVE, WSWAVE, UFRIC, Z0M,    &
 &            COSWDIF, SINWDIF2,             &

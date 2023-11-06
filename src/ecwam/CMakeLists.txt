@@ -200,6 +200,8 @@ list( APPEND ecwam_srcs
   set_wflags.F90
   setmarstype.F90
   setwavphys.F90
+  sinput.F90
+  sinput_jan.F90
   skewness.F90
   spectra.F90
   spr.F90
@@ -343,9 +345,7 @@ list(APPEND phys_srcs
      semean.F90
      setice.F90
      sinflx.F90
-     sinput.F90
      sinput_ard.F90
-     sinput_jan.F90
      snonlin.F90
      stokesdrift.F90
      stokestrn.F90
@@ -697,7 +697,7 @@ if( HAVE_CUDA )
 ##  SCC-cuf variant with parametrised temporaries:        ##
 ############################################################
   list(REMOVE_ITEM phys_srcs femean.F90 meansqs_lf.F90 omegagc.F90 semean.F90 sinput_jan.F90 wsigstar.F90)
-  foreach(src ${phys_srcs} wamintgr_cuda_mod.F90 ${global_var_mods})
+  foreach(src ${phys_srcs} wamintgr_cuda_mod.F90 sinput.F90 ${global_var_mods})
      string(REPLACE ".F90" "" fnc ${src})
      string(CONCAT fnm "../phys-scc-cuf/" ${fnc} ".cuf_parametrise.F90")
      list(APPEND wam_scc_cuf_srcs ${fnm})
