@@ -299,12 +299,12 @@
 !*    CALCULATE LOW-FREQUENCY CONTRIBUTION TO STRESS AND ENERGY FLUX (positive sinput).
 !     ---------------------------------------------------------------------------------
 !     THE INTEGRATION ONLY UP TO FR=MIJ SINCE RHOWGDFTH=0 FOR FR>MIJ
-        DO M=1,NFRE
+        DO M=1,36
           K=1
           SUMX = SPOS(IDX,K,M)*SINTH(K)
           SUMY = SPOS(IDX,K,M)*COSTH(K)
           SUMT = SPOS(IDX,K,M)
-          DO K=2,NANG
+          DO K=2,12
             SUMX = SUMX + SPOS(IDX,K,M)*SINTH(K)
             SUMY = SUMY + SPOS(IDX,K,M)*COSTH(K)
 
