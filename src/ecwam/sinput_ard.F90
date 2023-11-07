@@ -131,8 +131,10 @@
     REAL(KIND=JWRB) :: CSTRNFAC
     REAL(KIND=JWRB) :: FLP_AVG, SLP_AVG
     REAL(KIND=JWRB) :: ROGOROAIR, AIRD_PVISC
-    REAL(KIND=JWRB), DIMENSION(2) :: XSTRESS, YSTRESS, FLP, SLP
-    REAL(KIND=JWRB), DIMENSION(2) :: USG2, TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
+    REAL(KIND=JWRB) :: FLP, SLP
+    REAL(KIND=JWRB), DIMENSION(2) :: XSTRESS, YSTRESS
+    REAL(KIND=JWRB) :: USG2
+    REAL(KIND=JWRB), DIMENSION(2) :: TAUX, TAUY, USTP, USTPM1, USDIRP, UCN
     REAL(KIND=JWRB), DIMENSION(2) :: UCNZALPD
     REAL(KIND=JWRB) :: XNGAMCONST
     REAL(KIND=JWRB), DIMENSION(2) :: GAMNORMA    ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
@@ -256,9 +258,9 @@
       DO IGST=1,NGST
         XSTRESS(IGST) = 0.0_JWRB
         YSTRESS(IGST) = 0.0_JWRB
-        USG2(IGST) = USTP(IGST)**2
-        TAUX(IGST) = USG2(IGST)*SIN(WDWAVE)
-        TAUY(IGST) = USG2(IGST)*COS(WDWAVE)
+        USG2 = USTP(IGST)**2
+        TAUX(IGST) = USG2*SIN(WDWAVE)
+        TAUY(IGST) = USG2*COS(WDWAVE)
       END DO
       
       ROGOROAIR = G / RAORW
@@ -330,6 +332,9 @@
       END IF
       
       DO IGST=1,NGST
+        SUMF = 0.0_JWRB
+        SUMFSIN2 = 0.0_JWRB
+
         DO K=1,NANG
           IF (LTAUWSHELTER) THEN
             COSLP(K) = COS(TH(K) - USDIRP(IGST))
@@ -344,28 +349,22 @@
               XLLWS(IDX, K, M) = 1.0_JWRB
             END IF
           END IF
-        END DO
         
-        IF (LLNORMAGAM) THEN
-          
-          SUMF = 0.0_JWRB
-          SUMFSIN2 = 0.0_JWRB
-          DO K=1,NANG
+          IF (LLNORMAGAM) THEN
             SUMF = SUMF + GAM0(K, IGST)*FL1(IDX, K, M)
             SUMFSIN2 = SUMFSIN2 + GAM0(K, IGST)*FL1(IDX, K, M)*SINWDIF2(IDX, K)
-          END DO
-          
-          ZNZ = XNGAMCONST*USTPM1(IGST)
-          GAMNORMA(IGST) = (1.0_JWRB + ZNZ*SUMFSIN2) / (1.0_JWRB + ZNZ*SUMF)
-          
-        END IF
-        
-        IF (LLSNEG) THEN
-          DO K=1,NANG
+          ENDIF
+
+          IF (LLSNEG) THEN
             DSTAB2 = TEMP1*(TEMP2 + (FU + FUD*COSLP(K))*USTP(IGST))
             DSTAB(K, IGST) = DSTAB1 + PTURB*DSTAB2
-          END DO
-        END IF
+          END IF
+        END DO
+
+        IF (LLNORMAGAM) THEN
+          ZNZ = XNGAMCONST*USTPM1(IGST)
+          GAMNORMA(IGST) = (1.0_JWRB + ZNZ*SUMFSIN2) / (1.0_JWRB + ZNZ*SUMF)
+        ENDIF
       END DO
       
       
@@ -377,30 +376,25 @@
         
         DO IGST=1,NGST
           ! SLP: only the positive contributions
-          SLP(IGST) = GAM0(K, IGST)*GAMNORMA(IGST)
-          FLP(IGST) = SLP(IGST) + DSTAB(K, IGST)
-        END DO
+          SLP = GAM0(K, IGST)*GAMNORMA(IGST)
+          FLP = SLP + DSTAB(K, IGST)
+          SLP = SLP*FL1(IDX, K, M)
         
-        DO IGST=1,NGST
-          SLP(IGST) = SLP(IGST)*FL1(IDX, K, M)
-        END DO
+          IF (LTAUWSHELTER) THEN
+            CONST11 = CONSTF*SINTH(K)
+            CONST22 = CONSTF*COSTH(K)
+            XSTRESS(IGST) = XSTRESS(IGST) + SLP*CONST11
+            YSTRESS(IGST) = YSTRESS(IGST) + SLP*CONST22
+          ENDIF
         
-        IF (LTAUWSHELTER) THEN
-          CONST11 = CONSTF*SINTH(K)
-          CONST22 = CONSTF*COSTH(K)
-          DO IGST=1,NGST
-            XSTRESS(IGST) = XSTRESS(IGST) + SLP(IGST)*CONST11
-            YSTRESS(IGST) = YSTRESS(IGST) + SLP(IGST)*CONST22
-          END DO
-        END IF
-        
-        IGST = 1
-        SLP_AVG = SLP(IGST)
-        FLP_AVG = FLP(IGST)
-        DO IGST=2,NGST
-          SLP_AVG = SLP_AVG + SLP(IGST)
-          FLP_AVG = FLP_AVG + FLP(IGST)
-        END DO
+          IF (IGST == 1) THEN
+            SLP_AVG = SLP
+            FLP_AVG = FLP
+          ELSE
+            SLP_AVG = SLP_AVG + SLP
+            FLP_AVG = FLP_AVG + FLP
+          ENDIF
+        ENDDO
         
         SPOS(IDX, K, M) = AVG_GST*SLP_AVG
         
