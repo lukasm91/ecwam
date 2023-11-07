@@ -12,7 +12,7 @@
      &                   WDWAVE, WSWAVE, UFRIC, Z0M,    &
      &                   COSWDIF, SINWDIF2,             & 
      &                   RAORW, WSTAR, RNFAC,           &
-     &                   FLD, SL, SPOS, XLLWS)
+     &                   FLD, SL, SPOS, XLLWS, TMP_GAM0, TMP_DSTAB)
 ! ----------------------------------------------------------------------
 
 !**** *SINPUT* - COMPUTATION OF INPUT SOURCE FUNCTION.
@@ -92,6 +92,7 @@
 
       REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(OUT) :: FLD, SL, SPOS
       REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(OUT) :: XLLWS
+      REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, 2) :: TMP_GAM0, TMP_DSTAB
 
 
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
@@ -115,7 +116,7 @@
      &                     WDWAVE(IJ), WSWAVE(IJ), UFRIC(IJ), Z0M(IJ),     &
      &                     COSWDIF, SINWDIF2,              & 
      &                     RAORW(IJ), WSTAR(IJ), RNFAC(IJ),            &
-     &                     FLD, SL, SPOS, XLLWS)
+     &                     FLD, SL, SPOS, XLLWS, TMP_GAM0, TMP_DSTAB)
         ENDDO
       END SELECT 
 

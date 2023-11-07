@@ -7,7 +7,7 @@
 ! nor does it submit to any jurisdiction.
 !
   SUBROUTINE SINPUT_ARD (IDX, NGST, LLSNEG, KIJS, KIJL, FL1, WAVNUM, CINV, XK2CG, WDWAVE, WSWAVE, UFRIC, Z0M, COSWDIF,  &
-  & SINWDIF2, RAORW, WSTAR, RNFAC, FLD, SL, SPOS, XLLWS)
+  & SINWDIF2, RAORW, WSTAR, RNFAC, FLD, SL, SPOS, XLLWS, GAM0, DSTAB)
   !$loki routine seq
     ! ----------------------------------------------------------------------
     
@@ -78,7 +78,7 @@
     
     USE YOWCOUP, ONLY: LLCAPCHNK, LLNORMAGAM
     USE YOWFRED, ONLY: FR, TH, DFIM, COSTH, SINTH, ZPIFR, DELTH
-    USE YOWPARAM, ONLY: NANG, NFRE, NANG_PARAM
+    USE YOWPARAM, ONLY: NANG, NFRE
     USE YOWPCONS, ONLY: G, GM1, EPSMIN, EPSUS, ZPI
     USE YOWPHYS, ONLY: ZALP, TAUWSHELTER, XKAPPA, BETAMAXOXKAPPA2, RN1_RN, RNU, RNUM, SWELLF, SWELLF2, SWELLF3, SWELLF4,  &
     & SWELLF5, SWELLF6, SWELLF7, SWELLF7M1, Z0RAT, Z0TUBMAX, ABMIN, ABMAX
@@ -100,6 +100,7 @@
     REAL(KIND=JWRB), INTENT(IN), DIMENSION(KIJL, NANG) :: COSWDIF, SINWDIF2
     REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, NFRE) :: FLD, SL, SPOS
     REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, NFRE) :: XLLWS
+    REAL(KIND=JWRB), INTENT(OUT), DIMENSION(KIJL, NANG, 2) :: GAM0, DSTAB
     
     
     INTEGER(KIND=JWIM) :: K, M, IND, IGST
@@ -139,8 +140,7 @@
     REAL(KIND=JWRB) :: XNGAMCONST
     REAL(KIND=JWRB), DIMENSION(2) :: GAMNORMA    ! ! RENORMALISATION FACTOR OF THE GROWTH RATE
     REAL(KIND=JWRB) :: DSTAB1, TEMP1, TEMP2
-    REAL(KIND=JWRB), DIMENSION(NANG_PARAM, 2) :: GAM0, DSTAB
-    REAL(KIND=JWRB), DIMENSION(NANG_PARAM) :: COSLP
+    REAL(KIND=JWRB) :: COSLP
     
     LOGICAL :: LTAUWSHELTER
     ! ----------------------------------------------------------------------
@@ -250,38 +250,29 @@
       USTP(2) = UFRIC*(1.0_JWRB - SIG_N)
     END IF
     
-    DO IGST=1,NGST
+    DO IGST=1,2
+     IF (IGST <= NGST) THEN
       USTPM1(IGST) = 1.0_JWRB / MAX(USTP(IGST), EPSUS)
+     ENDIF
     END DO
     
     IF (LTAUWSHELTER) THEN
-      DO IGST=1,NGST
+      DO IGST=1,2
+       IF (IGST <= NGST) THEN
         XSTRESS(IGST) = 0.0_JWRB
         YSTRESS(IGST) = 0.0_JWRB
         USG2 = USTP(IGST)**2
         TAUX(IGST) = USG2*SIN(WDWAVE)
         TAUY(IGST) = USG2*COS(WDWAVE)
+       ENDIF
       END DO
       
       ROGOROAIR = G / RAORW
-      
-    ELSE
-      DO K=1,NANG
-        COSLP(K) = COSWDIF(IDX, K)
-      END DO
     END IF
     
     
     !*    2. MAIN LOOP OVER FREQUENCIES.
     !        ---------------------------
-    
-    IF (.not.LLNORMAGAM) THEN
-      GAMNORMA(:) = 1.0_JWRB
-    END IF
-    
-    IF (.not.LLSNEG) THEN
-      DSTAB(:, :) = 0.0_JWRB
-    END IF
     
     DO M=1,NFRE
       SIG = ZPIFR(M)
@@ -292,12 +283,14 @@
       COEF5 = -SWELLF5*2._JWRB*SQRT(2._JWRB*NU_AIR*SIG)
       
       IF (LTAUWSHELTER) THEN
-        DO IGST=1,NGST
+        DO IGST=1,2
+         IF (IGST <= NGST) THEN
           TAUPX = TAUX(IGST) - ABS_TAUWSHELTER*XSTRESS(IGST)
           TAUPY = TAUY(IGST) - ABS_TAUWSHELTER*YSTRESS(IGST)
           USDIRP(IGST) = ATAN2(TAUPX, TAUPY)
           USTP(IGST) = (TAUPX**2 + TAUPY**2)**0.25_JWRB
           USTPM1(IGST) = 1.0_JWRB / MAX(USTP(IGST), EPSUS)
+         ENDIF
         END DO
         
         CONSTF = ROGOROAIR*CINV(IDX, M)*DFIM(M)
@@ -307,9 +300,11 @@
       !*      PRECALCULATE FREQUENCY DEPENDENCE.
       !       ----------------------------------
       
-      DO IGST=1,NGST
+      DO IGST=1,2
+       IF (IGST <= NGST) THEN
         UCN(IGST) = USTP(IGST)*CINV(IDX, M)
         UCNZALPD(IGST) = XKAPPA / (UCN(IGST) + ZALP)
+       ENDIF
       END DO
       ZCN = LOG(WAVNUM(IDX, M)*Z0M)
       CNSN = CONST*RAORW
@@ -331,40 +326,48 @@
         TEMP1 = COEF*RAORW
       END IF
       
-      DO IGST=1,NGST
+      DO IGST=1,2
+       IF (IGST <= NGST) THEN
         SUMF = 0.0_JWRB
         SUMFSIN2 = 0.0_JWRB
 
         DO K=1,NANG
           IF (LTAUWSHELTER) THEN
-            COSLP(K) = COS(TH(K) - USDIRP(IGST))
+            COSLP = COS(TH(K) - USDIRP(IGST))
+          ELSE
+            COSLP = COSWDIF(IDX, K)
           END IF
-          GAM0(K, IGST) = 0.0_JWRB
-          IF (COSLP(K) > 0.01_JWRB) THEN
-            X = COSLP(K)*UCN(IGST)
-            ZLOG = ZCN + UCNZALPD(IGST) / COSLP(K)
+          GAM0(IDX, K, IGST) = 0.0_JWRB
+          IF (COSLP > 0.01_JWRB) THEN
+            X = COSLP*UCN(IGST)
+            ZLOG = ZCN + UCNZALPD(IGST) / COSLP
             IF (ZLOG < 0.0_JWRB) THEN
               ZLOG2X = ZLOG*ZLOG*X
-              GAM0(K, IGST) = EXP(ZLOG)*ZLOG2X*ZLOG2X*CNSN
+              GAM0(IDX, K, IGST) = EXP(ZLOG)*ZLOG2X*ZLOG2X*CNSN
               XLLWS(IDX, K, M) = 1.0_JWRB
             END IF
           END IF
         
           IF (LLNORMAGAM) THEN
-            SUMF = SUMF + GAM0(K, IGST)*FL1(IDX, K, M)
-            SUMFSIN2 = SUMFSIN2 + GAM0(K, IGST)*FL1(IDX, K, M)*SINWDIF2(IDX, K)
+            SUMF = SUMF + GAM0(IDX, K, IGST)*FL1(IDX, K, M)
+            SUMFSIN2 = SUMFSIN2 + GAM0(IDX, K, IGST)*FL1(IDX, K, M)*SINWDIF2(IDX, K)
           ENDIF
 
           IF (LLSNEG) THEN
-            DSTAB2 = TEMP1*(TEMP2 + (FU + FUD*COSLP(K))*USTP(IGST))
-            DSTAB(K, IGST) = DSTAB1 + PTURB*DSTAB2
+            DSTAB2 = TEMP1*(TEMP2 + (FU + FUD*COSLP)*USTP(IGST))
+            DSTAB(IDX, K, IGST) = DSTAB1 + PTURB*DSTAB2
+          ELSE
+            DSTAB(IDX, K, IGST) = 0_JWRB
           END IF
         END DO
 
         IF (LLNORMAGAM) THEN
           ZNZ = XNGAMCONST*USTPM1(IGST)
           GAMNORMA(IGST) = (1.0_JWRB + ZNZ*SUMFSIN2) / (1.0_JWRB + ZNZ*SUMF)
+        ELSE
+          GAMNORMA(IGST) = 1.0_JWRB
         ENDIF
+       ENDIF
       END DO
       
       
@@ -374,10 +377,13 @@
       
       DO K=1,NANG
         
-        DO IGST=1,NGST
+        SLP_AVG = 0_JPRB
+        FLP_AVG = 0_JPRB
+        DO IGST=1,2
+         IF (IGST <= NGST) THEN
           ! SLP: only the positive contributions
-          SLP = GAM0(K, IGST)*GAMNORMA(IGST)
-          FLP = SLP + DSTAB(K, IGST)
+          SLP = GAM0(IDX, K, IGST)*GAMNORMA(IGST)
+          FLP = SLP + DSTAB(IDX, K, IGST)
           SLP = SLP*FL1(IDX, K, M)
         
           IF (LTAUWSHELTER) THEN
@@ -387,13 +393,9 @@
             YSTRESS(IGST) = YSTRESS(IGST) + SLP*CONST22
           ENDIF
         
-          IF (IGST == 1) THEN
-            SLP_AVG = SLP
-            FLP_AVG = FLP
-          ELSE
-            SLP_AVG = SLP_AVG + SLP
-            FLP_AVG = FLP_AVG + FLP
-          ENDIF
+          SLP_AVG = SLP_AVG + SLP
+          FLP_AVG = FLP_AVG + FLP
+         ENDIF
         ENDDO
         
         SPOS(IDX, K, M) = AVG_GST*SLP_AVG
