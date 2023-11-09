@@ -296,19 +296,6 @@
         XSTRESS = 0.0_JWRB
         YSTRESS = 0.0_JWRB
 
-!*    CONTRIBUTION TO THE WAVE STRESS FROM THE NEGATIVE PART OF THE WIND INPUT
-!     ------------------------------------------------------------------------
-
-        IF ( LLPHIWA ) THEN
-!     full energy flux due to negative Sinput (SL-SPOS)
-!     we assume that above NFRE, the contibutions can be neglected
-          DO M=1,NFRE
-            DO K=1,NANG
-              PHIWA = PHIWA + (SL(IDX,K,M)-SPOS(IDX,K,M))*RHOWG_DFIM(M)
-            ENDDO
-          ENDDO
-        ENDIF
-
 !*    CALCULATE LOW-FREQUENCY CONTRIBUTION TO STRESS AND ENERGY FLUX (positive sinput).
 !     ---------------------------------------------------------------------------------
 !     THE INTEGRATION ONLY UP TO FR=MIJ SINCE RHOWGDFTH=0 FOR FR>MIJ
@@ -316,30 +303,32 @@
           K=1
           SUMX = SPOS(IDX,K,M)*SINTH(K)
           SUMY = SPOS(IDX,K,M)*COSTH(K)
+          SUMT = SPOS(IDX,K,M)
           DO K=2,NANG
             SUMX = SUMX + SPOS(IDX,K,M)*SINTH(K)
             SUMY = SUMY + SPOS(IDX,K,M)*COSTH(K)
+
+            SUMT = SUMT + SPOS(IDX,K,M)
           ENDDO
           CMRHOWGDFTH = RHOWGDFTH(IDX,M)*CINV(IDX,M)
           XSTRESS = XSTRESS + CMRHOWGDFTH*SUMX
           YSTRESS = YSTRESS + CMRHOWGDFTH*SUMY
+
+!*    CONTRIBUTION TO THE WAVE STRESS FROM THE NEGATIVE PART OF THE WIND INPUT
+!     ------------------------------------------------------------------------
+!       THE INTEGRATION ONLY UP TO FR=MIJ SINCE RHOWGDFTH=0 FOR FR>MIJ
+          IF (LLPHIWA) THEN
+            ! full energy flux due to negative Sinput (SL-SPOS)
+            ! we assume that above NFRE, the contibutions can be neglected
+            PHIWA = PHIWA + (SL(IDX,K,M)-SPOS(IDX,K,M))*RHOWG_DFIM(M)
+            PHIWA = PHIWA + RHOWGDFTH(IDX,M)*SUMT
+          ENDIF
+
         ENDDO
 
 !     TAUW is the kinematic wave stress !
         XSTRESS = XSTRESS/MAX(AIRD, 1.0_JWRB)
         YSTRESS = YSTRESS/MAX(AIRD, 1.0_JWRB)
-
-        IF ( LLPHIWA ) THEN
-!       THE INTEGRATION ONLY UP TO FR=MIJ SINCE RHOWGDFTH=0 FOR FR>MIJ
-          DO M=1,NFRE
-            K=1
-            SUMT = SPOS(IDX,K,M)
-            DO K=2,NANG
-              SUMT = SUMT + SPOS(IDX,K,M)
-            ENDDO
-            PHIWA = PHIWA + RHOWGDFTH(IDX,M)*SUMT
-          ENDDO
-        ENDIF
 
 !*    CALCULATE HIGH-FREQUENCY CONTRIBUTION TO STRESS and energy flux (positive sinput).
 !     ----------------------------------------------------------------------------------
