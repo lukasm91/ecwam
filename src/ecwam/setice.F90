@@ -88,3 +88,48 @@
       IF (LHOOK) CALL DR_HOOK('SETICE',1,ZHOOK_HANDLE)
 
       END SUBROUTINE SETICE
+
+      SUBROUTINE SETICE_PW (IDX, KIJL, FL1, CICOVER, COSWDIF)
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWICE   , ONLY : FLMIN    ,CITHRSH
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPCONS , ONLY : EPSMIN
+
+      USE YOMHOOK  , ONLY : LHOOK    ,DR_HOOK, JPHOOK
+!$loki routine seq
+
+! ----------------------------------------------------------------------
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL, NANG, NFRE), INTENT(INOUT) :: FL1
+      REAL(KIND=JWRB), INTENT(IN) :: CICOVER
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(IN) :: COSWDIF
+
+
+      INTEGER(KIND=JWIM) :: M, K
+
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: CIREDUC, TEMP, ICEFREE 
+
+!*    1. SET SPECTRA TO NOISE LEVEL OVER ICE POINTS.
+!     ----------------------------------------------
+
+        IF (CICOVER > CITHRSH) THEN
+          CIREDUC=MAX(EPSMIN,(1.0_JWRB-CICOVER))
+          ICEFREE=0.0_JWRB
+        ELSE
+          CIREDUC=0.0_JWRB
+          ICEFREE=1.0_JWRB
+        ENDIF
+
+        TEMP=CIREDUC*FLMIN
+        DO M = 1, NFRE
+          DO K = 1, NANG
+            FL1(IDX,K,M)=FL1(IDX,K,M)*ICEFREE+TEMP*MAX(0.0_JWRB, COSWDIF(IDX,K))**2
+          ENDDO
+        ENDDO
+
+      END SUBROUTINE SETICE_PW

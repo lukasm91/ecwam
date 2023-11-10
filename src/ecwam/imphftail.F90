@@ -91,3 +91,46 @@
       IF (LHOOK) CALL DR_HOOK('IMPHFTAIL',1,ZHOOK_HANDLE)
 
       END SUBROUTINE IMPHFTAIL
+      SUBROUTINE IMPHFTAIL_PW(IDX, KIJL, MIJ, FLM, WAVNUM, XK2CG, FL1) 
+          !$loki routine seq
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK, JPHOOK
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
+      INTEGER(KIND=JWIM), INTENT(IN) :: MIJ
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG), INTENT(IN) :: FLM 
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM, XK2CG
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FL1
+
+
+      INTEGER(KIND=JWIM) :: K, M
+
+      REAL(KIND=JWRB) :: AKM1, TFAC
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: TEMP1, TEMP2
+
+
+!*    DIAGNOSTIC TAIL.
+!     ----------------
+
+        TEMP1 = 1.0_JWRB/XK2CG(IDX,MIJ)/WAVNUM(IDX,MIJ)
+
+        DO M=MIJ+1,NFRE
+          TEMP2 = 1.0_JWRB/XK2CG(IDX,M)/WAVNUM(IDX,M)
+          TEMP2 = TEMP2/TEMP1
+
+!*    MERGE TAIL INTO SPECTRA.
+!     ------------------------
+          DO K=1,NANG
+            TFAC = FL1(IDX,K,MIJ)
+            FL1(IDX,K,M) = MAX(TEMP2*TFAC,FLM(IDX,K))
+          ENDDO
+        ENDDO
+
+      END SUBROUTINE IMPHFTAIL_PW
