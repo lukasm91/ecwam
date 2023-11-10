@@ -119,3 +119,63 @@
       IF (LHOOK) CALL DR_HOOK('SDIWBK',1,ZHOOK_HANDLE)
 
       END SUBROUTINE SDIWBK
+      SUBROUTINE SDIWBK_PW(IDX, KIJS, KIJL, FL1, FLD, SL, DEPTH, EMAXDPT, EMEAN, F1MEAN)
+!$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWPARAM , ONLY : NANG     ,NFRE,    NFRE_RED
+
+      USE YOMHOOK  , ONLY : LHOOK    ,DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL, NANG, NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL, NANG, NFRE), INTENT(INOUT) :: FLD, SL
+      REAL(KIND=JWRB), INTENT(IN):: DEPTH, EMAXDPT, EMEAN, F1MEAN
+
+
+      INTEGER(KIND=JWIM) :: K, M, IC
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: ALPH, ARG, Q, Q_OLD, REL_ERR, EXPQ
+      REAL(KIND=JWRB) :: SDS
+
+      REAL, PARAMETER :: ALPH_B_J = 1.0_JWRB
+      REAL, PARAMETER :: COEF_B_J=2*ALPH_B_J
+      REAL, PARAMETER :: DEPTHTRS=50.0_JWRB 
+
+
+!*    1. ADDING DISSIPATION AND ITS FUNCTIONAL DERIVATIVE TO NET SOURCE
+!*       FUNCTION AND NET SOURCE FUNCTION DERIVATIVE.
+!        --------------------------------------------------------------
+
+!       (FOLLOWING BATTJES-JANSSEN AND BEJI)
+           IF(DEPTH < DEPTHTRS) THEN
+             ALPH = 2.0_JWRB*EMAXDPT/EMEAN
+             ARG  = MIN(ALPH,50.0_JWRB)
+             Q_OLD = EXP(-ARG)
+!            USE NEWTON-RAPHSON METHOD
+             DO IC=1,15
+               EXPQ = EXP(-ARG*(1.0_JWRB-Q_OLD))
+               Q = Q_OLD - (EXPQ-Q_OLD)/(ARG*EXPQ-1.0_JWRB)
+               REL_ERR=ABS(Q-Q_OLD)/Q_OLD
+               IF(REL_ERR.LT.0.00001_JWRB) EXIT
+               Q_OLD = Q
+             ENDDO
+             Q=MIN(Q,1.0_JWRB)
+             SDS = COEF_B_J*ALPH*Q*F1MEAN
+           ENDIF
+      
+          DO M = 1, NFRE_RED
+             DO K=1,NANG
+                IF(DEPTH < DEPTHTRS) THEN
+                  SL(IDX,K,M) = SL(IDX,K,M)-SDS*FL1(IDX,K,M)
+                  FLD(IDX,K,M) = FLD(IDX,K,M)-SDS
+                ENDIF
+              ENDDO
+           ENDDO
+
+      END SUBROUTINE SDIWBK_PW

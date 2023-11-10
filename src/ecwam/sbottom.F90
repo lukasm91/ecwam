@@ -99,3 +99,49 @@
       IF (LHOOK) CALL DR_HOOK('SBOTTOM',1,ZHOOK_HANDLE)
 
       END SUBROUTINE SBOTTOM
+      SUBROUTINE SBOTTOM_PW (IDX, KIJS, KIJL, FL1, FLD, SL, WAVNUM, DEPTH)
+!$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWPARAM , ONLY : NANG     ,NFRE    ,NFRE_RED
+      USE YOWPCONS , ONLY : GM1
+      USE YOWSHAL  , ONLY : BATHYMAX
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(INOUT) :: FLD, SL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM 
+      REAL(KIND=JWRB), INTENT(IN) :: DEPTH 
+
+
+      INTEGER(KIND=JWIM):: K, M
+      REAL(KIND=JWRB) :: CONST, ARG
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: SBO
+
+! ----------------------------------------------------------------------
+
+      CONST = -2.0_JWRB*0.038_JWRB*GM1
+        DO M = 1, NFRE_RED
+          IF(DEPTH < BATHYMAX) THEN
+            ARG = 2.0_JWRB* DEPTH*WAVNUM(IDX,M)
+            ARG = MIN(ARG,50.0_JWRB)
+            SBO = CONST*WAVNUM(IDX,M)/SINH(ARG)
+          ELSE
+            SBO = 0.0_JWRB
+          ENDIF
+
+          DO K=1,NANG
+            SL(IDX,K,M) = SL(IDX,K,M)+SBO*FL1(IDX,K,M)
+            FLD(IDX,K,M) = FLD(IDX,K,M)+SBO
+          ENDDO
+        ENDDO
+
+      END SUBROUTINE SBOTTOM_PW

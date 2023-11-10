@@ -524,9 +524,15 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
       ENDIF
 
 
-      CALL SDIWBK(KIJS, KIJL, FL1 ,FLD, SL, DEPTH, EMAXDPT, EMEAN, F1MEAN)
+      IF (LBIWBK) THEN
+        DO IJ=KIJS,KIJL
+          CALL SDIWBK_PW(IJ, KIJS, KIJL, FL1 ,FLD, SL, DEPTH(IJ), EMAXDPT(IJ), EMEAN(IJ), F1MEAN(IJ))
+        ENDDO
+      ENDIF
 
-      CALL SBOTTOM (KIJS, KIJL, FL1, FLD, SL, WAVNUM, DEPTH)
+      DO IJ=KIJS,KIJL
+        CALL SBOTTOM_PW(IJ, KIJS, KIJL, FL1, FLD, SL, WAVNUM, DEPTH(IJ))
+      ENDDO
 
 ! ----------------------------------------------------------------------
 
@@ -573,18 +579,20 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
       ENDIF
 
       IF (LCFLX) THEN
-        CALL WNFLUXES (KIJS, KIJL,                              &
-     &                 MIJ, RHOWGDFTH,                          &
+        DO IJ=KIJS,KIJL
+        CALL WNFLUXES_PW (IJ, KIJS, KIJL,                              &
+     &                 MIJ(IJ), RHOWGDFTH,                          &
      &                 CINV,                             &
-     &                 SSOURCE, CICOVER,                 &
-     &                 PHIWA,                                   &
-     &                 EMEAN, F1MEAN, WSWAVE,            &
-     &                 WDWAVE, UFRIC, AIRD,&
-     &                 NPHIEPS, NTAUOC, NSWH, NMWP, NEMOTAUX, &
-     &                 NEMOTAUY, NEMOWSWAVE, NEMOPHIF, &
-     &                 TAUXD, TAUYD, TAUOCXD, TAUOCYD, TAUOC, &
-     &                 PHIOCD, PHIEPS, PHIAW, &
+     &                 SSOURCE, CICOVER(IJ),                 &
+     &                 PHIWA(IJ),                                   &
+     &                 EMEAN(IJ), F1MEAN(IJ), WSWAVE(IJ),            &
+     &                 WDWAVE(IJ), UFRIC(IJ), AIRD(IJ),&
+     &                 NPHIEPS(IJ), NTAUOC(IJ), NSWH(IJ), NMWP(IJ), NEMOTAUX(IJ), &
+     &                 NEMOTAUY(IJ), NEMOWSWAVE(IJ), NEMOPHIF(IJ), &
+     &                 TAUXD(IJ), TAUYD(IJ), TAUOCXD(IJ), TAUOCYD(IJ), TAUOC(IJ), &
+     &                 PHIOCD(IJ), PHIEPS(IJ), PHIAW(IJ), &
      &                 .TRUE.)
+        ENDDO
       ENDIF
 ! ----------------------------------------------------------------------
 
