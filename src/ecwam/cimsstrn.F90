@@ -123,3 +123,59 @@
       IF (LHOOK) CALL DR_HOOK('CIMSSTRN',1,ZHOOK_HANDLE)
 
       END SUBROUTINE CIMSSTRN
+      SUBROUTINE CIMSSTRN_PW(IDX, KIJL, FL1, WAVNUM, DEPTH, CITHICK, STRN)
+!$loki routine seq
+
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWICE   , ONLY : FLMIN
+      USE YOWFRED  , ONLY : FR       ,DFIM     ,DELTH
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPCONS , ONLY : G        ,ZPI      ,ROWATER
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+#include "aki_ice.intfb.h"
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM
+      REAL(KIND=JWRB), INTENT(IN) :: DEPTH 
+      REAL(KIND=JWRB), INTENT(IN) :: CITHICK 
+      REAL(KIND=JWRB), INTENT(OUT) :: STRN
+
+
+      INTEGER(KIND=JWIM) :: M, K
+      REAL(KIND=JWRB) :: F1LIM 
+      REAL(KIND=JWRB) :: XKI, E, SUME 
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+
+!*    1. INITIALISE
+!        ----------
+
+      F1LIM=FLMIN/DELTH
+
+        STRN = 0.0_JWRB
+
+! ----------------------------------------------------------------------
+
+!*    2. INTEGRATE OVER FREQUENCIES AND DIRECTIONS.
+!        ------------------------------------------
+
+        DO M=1,NFRE
+          XKI=AKI_ICE(G,WAVNUM(IDX,M),DEPTH,ROWATER,CITHICK)
+          E=0.5_JWRB*CITHICK*XKI**3/WAVNUM(IDX,M)
+
+          SUME = 0.0_JWRB
+          DO K=1,NANG
+            SUME = SUME+FL1(IDX,K,M)
+          ENDDO
+
+          IF (SUME > F1LIM) THEN
+            STRN = STRN+E**2*SUME*DFIM(M)
+          ENDIF
+        ENDDO
+      END SUBROUTINE CIMSSTRN_PW

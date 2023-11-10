@@ -509,30 +509,25 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 !*    2.3.1 ITERATIVELY UPDATE STRESS AND COMPUTE WIND INPUT TERMS. 
 !           -------------------------------------------------------
 
-      IF (LCFLX .AND. LWVFLX_SNL) THEN
+      DO IJ=KIJS,KIJL
+        IF (LCFLX .AND. LWVFLX_SNL) THEN
 !     Save source term contributions relevant for the calculation of ocean fluxes
 !!!!!!  SL must only contain contributions contributed to fluxes into the oceans
 !       MODULATE SL BY IMPLICIT FACTOR
-        DO M=1,NFRE
-          DO K=1,NANG
-            DO IJ=KIJS,KIJL
+          DO M=1,NFRE
+            DO K=1,NANG
               GTEMP1 = MAX((1.0_JWRB-DELT5*FLD(IJ,K,M)),1.0_JWRB)
               SSOURCE(IJ,K,M) = SL(IJ,K,M)/GTEMP1
             ENDDO
           ENDDO
-        ENDDO
-      ENDIF
+        ENDIF
 
 
-      IF (LBIWBK) THEN
-        DO IJ=KIJS,KIJL
+        IF (LBIWBK) THEN
           CALL SDIWBK_PW(IJ, KIJL, FL1 ,FLD, SL, DEPTH(IJ), EMAXDPT(IJ), EMEAN(IJ), F1MEAN(IJ))
-        ENDDO
-      ENDIF
+        ENDIF
 
-      DO IJ=KIJS,KIJL
         CALL SBOTTOM_PW(IJ, KIJL, FL1, FLD, SL, WAVNUM, DEPTH(IJ))
-      ENDDO
 
 ! ----------------------------------------------------------------------
 
@@ -542,14 +537,11 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 !     INCREASE OF SPECTRUM IN A TIME STEP IS LIMITED TO A FINITE
 !     FRACTION OF A TYPICAL F**(-4) EQUILIBRIUM SPECTRUM.
 
-      DO IJ=KIJS,KIJL
         USFM(IJ) = UFRIC(IJ)*MAX(FMEANWS(IJ), FMEAN(IJ))
-      ENDDO
 
-      IF (LLUNSTR) THEN
-        DO K=1,NANG
-          DO M=1,NFRE
-            DO IJ=KIJS,KIJL
+        IF (LLUNSTR) THEN
+          DO K=1,NANG
+            DO M=1,NFRE
               GTEMP1 = MAX((1.0_JWRB-DELT5*FLD(IJ,K,M)),1.0_JWRB)
               GTEMP2 = DELT*SL(IJ,K,M)/GTEMP1
               FLHAB = ABS(GTEMP2)
@@ -560,11 +552,9 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
               FL1(IJ,K,M) = MIN(FL1(IJ,K,M),FLMAX(M))
             ENDDO
           ENDDO
-        ENDDO
-      ELSE
-        DO K=1,NANG
-          DO M=1,NFRE
-            DO IJ=KIJS,KIJL
+        ELSE
+          DO K=1,NANG
+            DO M=1,NFRE
               GTEMP1 = MAX((1.0_JWRB-DELT5*FLD(IJ,K,M)),1.0_JWRB)
               GTEMP2 = DELT*SL(IJ,K,M)/GTEMP1
               FLHAB = ABS(GTEMP2)
@@ -575,12 +565,10 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
               FL1(IJ,K,M) = MIN(FL1(IJ,K,M),FLMAX(M))
             ENDDO
           ENDDO
-        ENDDO
-      ENDIF
+        ENDIF
 
-      IF (LCFLX) THEN
-        DO IJ=KIJS,KIJL
-        CALL WNFLUXES_PW (IJ, KIJL,                              &
+        IF (LCFLX) THEN
+          CALL WNFLUXES_PW (IJ, KIJL,                              &
      &                 MIJ(IJ), RHOWGDFTH,                          &
      &                 CINV,                             &
      &                 SSOURCE, CICOVER(IJ),                 &
@@ -592,32 +580,24 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
      &                 TAUXD(IJ), TAUYD(IJ), TAUOCXD(IJ), TAUOCYD(IJ), TAUOC(IJ), &
      &                 PHIOCD(IJ), PHIEPS(IJ), PHIAW(IJ), &
      &                 .TRUE.)
-        ENDDO
-      ENDIF
+        ENDIF
 ! ----------------------------------------------------------------------
 
 !*    2.5 REPLACE DIAGNOSTIC PART OF SPECTRA BY A F**(-5) TAIL.
 !         -----------------------------------------------------
 
-      DO IJ=KIJS,KIJL
-      CALL FKMEAN_PW(IJ, KIJL, FL1, WAVNUM,                      &
-     &            EMEAN(IJ), FMEAN(IJ), F1MEAN(IJ), AKMEAN(IJ), XKMEAN(IJ))
-      ENDDO
+        CALL FKMEAN_PW(IJ, KIJL, FL1, WAVNUM,                      &
+     &              EMEAN(IJ), FMEAN(IJ), F1MEAN(IJ), AKMEAN(IJ), XKMEAN(IJ))
 
 !     MEAN FREQUENCY CHARACTERISTIC FOR WIND SEA
-      DO IJ=KIJS,KIJL
-      CALL FEMEANWS_PW(IJ, KIJL, FL1, XLLWS, FMEANWS(IJ), EMEANWS(IJ))
-      ENDDO
+        CALL FEMEANWS_PW(IJ, KIJL, FL1, XLLWS, FMEANWS(IJ), EMEANWS(IJ))
 
-      DO IJ=KIJS,KIJL
-      CALL IMPHFTAIL_PW(IJ, KIJL, MIJ(IJ), FLM, WAVNUM, XK2CG, FL1)
-      ENDDO
+        CALL IMPHFTAIL_PW(IJ, KIJL, MIJ(IJ), FLM, WAVNUM, XK2CG, FL1)
 
 
 !     UPDATE WINDSEA VARIANCE AND MEAN FREQUENCY IF PASSED TO ATMOSPHERE
 !     ------------------------------------------------------------------
-      IF (LWFLUX) THEN
-        DO IJ=KIJS,KIJL
+        IF (LWFLUX) THEN
           IF (EMEANWS(IJ) < WSEMEAN_MIN) THEN
             WSEMEAN(IJ) = WSEMEAN_MIN 
             WSFMEAN(IJ) = 2._JWRB*FR(NFRE)
@@ -625,25 +605,23 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
             WSEMEAN(IJ) = EMEANWS(IJ)
             WSFMEAN(IJ) = FMEANWS(IJ) 
           ENDIF
-        ENDDO
-      ENDIF
+        ENDIF
 
 
 !*    2.6 SET FL1 ON ICE POINTS TO ZERO
 !         -----------------------------
 
-      IF (LICERUN .AND. LMASKICE) THEN
-        DO IJ=KIJS,KIJL
+        IF (LICERUN .AND. LMASKICE) THEN
           CALL SETICE_PW(IJ, KIJL, FL1, CICOVER(IJ), COSWDIF)
-        ENDDO
-      ENDIF
+        ENDIF
 
 
 !*    2.7 SURFACE STOKES DRIFT AND STRAIN IN SEA ICE
 !         ------------------------------------------
 
-      CALL STOKESTRN(KIJS, KIJL, FL1, WAVNUM, STOKFAC, DEPTH, WSWAVE, WDWAVE, CICOVER, CITHICK, &
- &                   USTOKES, VSTOKES, STRNMS, NEMOUSTOKES, NEMOVSTOKES, NEMOSTRN)
+        CALL STOKESTRN_PW(IJ, KIJL, FL1, WAVNUM, STOKFAC, DEPTH(IJ), WSWAVE(IJ), WDWAVE(IJ), CICOVER(IJ), CITHICK(IJ), &
+ &                     USTOKES(IJ), VSTOKES(IJ), STRNMS(IJ), NEMOUSTOKES(IJ), NEMOVSTOKES(IJ), NEMOSTRN(IJ))
+      ENDDO
 
 ! ----------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('IMPLSCH',1,ZHOOK_HANDLE)

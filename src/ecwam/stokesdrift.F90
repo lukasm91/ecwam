@@ -7,7 +7,7 @@
 ! nor does it submit to any jurisdiction.
 !
 
-      SUBROUTINE STOKESDRIFT(KIJS, KIJL, FL1, STOKFAC, WSWAVE, WDWAVE, CICOVER, USTOKES, VSTOKES)
+      SUBROUTINE STOKESDRIFT(IDX, KIJL, FL1, STOKFAC, WSWAVE, WDWAVE, CICOVER, USTOKES, VSTOKES)
  
 !
 !***  *STOKESDRIFT*   DETERMINES THE STOKES DRIFT
@@ -61,22 +61,23 @@
       USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
        
 ! ----------------------------------------------------------------------
+!$loki routine seq
       IMPLICIT NONE
 
-      INTEGER(KIND=JWIM), INTENT(IN) :: KIJS, KIJL
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
 
       REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
       REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: STOKFAC 
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(IN) :: WSWAVE, WDWAVE, CICOVER
-      REAL(KIND=JWRB), DIMENSION(KIJL), INTENT(OUT) :: USTOKES, VSTOKES
+      REAL(KIND=JWRB), INTENT(IN) :: WSWAVE, WDWAVE, CICOVER
+      REAL(KIND=JWRB), INTENT(OUT) :: USTOKES, VSTOKES
 
 
-      INTEGER(KIND=JWIM) :: IJ, M, K
+      INTEGER(KIND=JWIM) :: M, K
 
       REAL(KIND=JWRB), PARAMETER :: STMAX=1.5_JWRB   ! maximum magnitude (this is for safety when coupled)
       REAL(KIND=JWRB) :: CONST, FAC, FAC1, FAC2, FAC3
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
-      REAL(KIND=JWRB), DIMENSION(KIJL) :: STFAC
+      REAL(KIND=JWRB) :: STFAC
 
 ! ----------------------------------------------------------------------
 
@@ -91,21 +92,15 @@
 !***  1.1 PERFORM INTEGRATION.
 !     ------------------------
  
-      DO IJ = KIJS,KIJL
-         USTOKES(IJ) = 0.0_JWRB
-         VSTOKES(IJ) = 0.0_JWRB
-      ENDDO
+      USTOKES = 0.0_JWRB
+      VSTOKES = 0.0_JWRB
 
       DO M=1,NFRE_ODD
-         DO IJ = KIJS,KIJL
-           STFAC(IJ) = STOKFAC(IJ,M)*DFIM_SIM(M)
-         ENDDO
+         STFAC = STOKFAC(IDX,M)*DFIM_SIM(M)
          DO K=1,NANG
-            DO IJ = KIJS,KIJL
-               FAC3 = STFAC(IJ)*FL1(IJ,K,M)
-               USTOKES(IJ) = USTOKES(IJ)+FAC3*SINTH(K)
-               VSTOKES(IJ) = VSTOKES(IJ)+FAC3*COSTH(K)
-            ENDDO
+            FAC3 = STFAC*FL1(IDX,K,M)
+            USTOKES = USTOKES+FAC3*SINTH(K)
+            VSTOKES = VSTOKES+FAC3*COSTH(K)
          ENDDO
       ENDDO
  
@@ -115,31 +110,25 @@
       DO K=1,NANG
          FAC1 = CONST*SINTH(K)
          FAC2 = CONST*COSTH(K)
-         DO IJ = KIJS,KIJL
-            USTOKES(IJ) = USTOKES(IJ)+FAC1*FL1(IJ,K,NFRE_ODD)
-            VSTOKES(IJ) = VSTOKES(IJ)+FAC2*FL1(IJ,K,NFRE_ODD)
-         ENDDO
+         USTOKES = USTOKES+FAC1*FL1(IDX,K,NFRE_ODD)
+         VSTOKES = VSTOKES+FAC2*FL1(IDX,K,NFRE_ODD)
       ENDDO
 
 
 !***  1.3 Sea Ice exception
 !     ---------------------
       IF (LICERUN .AND. LWAMRSETCI) THEN
-       DO IJ=KIJS,KIJL
-         IF (CICOVER(IJ) > CITHRSH) THEN
-           USTOKES(IJ) = 0.016_JWRB*WSWAVE(IJ)*SIN(WDWAVE(IJ))*(1.0_JWRB - CICOVER(IJ))
-           VSTOKES(IJ) = 0.016_JWRB*WSWAVE(IJ)*COS(WDWAVE(IJ))*(1.0_JWRB - CICOVER(IJ))
-         ENDIF
-       ENDDO
+       IF (CICOVER > CITHRSH) THEN
+         USTOKES = 0.016_JWRB*WSWAVE*SIN(WDWAVE)*(1.0_JWRB - CICOVER)
+         VSTOKES = 0.016_JWRB*WSWAVE*COS(WDWAVE)*(1.0_JWRB - CICOVER)
+       ENDIF
      ENDIF
 
 !***  1.4 Protection
 !     --------------
 
-      DO IJ = KIJS,KIJL
-         USTOKES(IJ) = MIN(MAX(USTOKES(IJ),-STMAX),STMAX)
-         VSTOKES(IJ) = MIN(MAX(VSTOKES(IJ),-STMAX),STMAX)
-      ENDDO
+      USTOKES = MIN(MAX(USTOKES,-STMAX),STMAX)
+      VSTOKES = MIN(MAX(VSTOKES,-STMAX),STMAX)
 
       IF (LHOOK) CALL DR_HOOK('STOKESDRIFT',1,ZHOOK_HANDLE)
 
