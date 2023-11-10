@@ -526,12 +526,12 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 
       IF (LBIWBK) THEN
         DO IJ=KIJS,KIJL
-          CALL SDIWBK_PW(IJ, KIJS, KIJL, FL1 ,FLD, SL, DEPTH(IJ), EMAXDPT(IJ), EMEAN(IJ), F1MEAN(IJ))
+          CALL SDIWBK_PW(IJ, KIJL, FL1 ,FLD, SL, DEPTH(IJ), EMAXDPT(IJ), EMEAN(IJ), F1MEAN(IJ))
         ENDDO
       ENDIF
 
       DO IJ=KIJS,KIJL
-        CALL SBOTTOM_PW(IJ, KIJS, KIJL, FL1, FLD, SL, WAVNUM, DEPTH(IJ))
+        CALL SBOTTOM_PW(IJ, KIJL, FL1, FLD, SL, WAVNUM, DEPTH(IJ))
       ENDDO
 
 ! ----------------------------------------------------------------------
@@ -580,7 +580,7 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 
       IF (LCFLX) THEN
         DO IJ=KIJS,KIJL
-        CALL WNFLUXES_PW (IJ, KIJS, KIJL,                              &
+        CALL WNFLUXES_PW (IJ, KIJL,                              &
      &                 MIJ(IJ), RHOWGDFTH,                          &
      &                 CINV,                             &
      &                 SSOURCE, CICOVER(IJ),                 &
@@ -599,11 +599,15 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
 !*    2.5 REPLACE DIAGNOSTIC PART OF SPECTRA BY A F**(-5) TAIL.
 !         -----------------------------------------------------
 
-      CALL FKMEAN(KIJS, KIJL, FL1, WAVNUM,                      &
-     &            EMEAN, FMEAN, F1MEAN, AKMEAN, XKMEAN)
+      DO IJ=KIJS,KIJL
+      CALL FKMEAN_PW(IJ, KIJL, FL1, WAVNUM,                      &
+     &            EMEAN(IJ), FMEAN(IJ), F1MEAN(IJ), AKMEAN(IJ), XKMEAN(IJ))
+      ENDDO
 
 !     MEAN FREQUENCY CHARACTERISTIC FOR WIND SEA
-      CALL FEMEANWS(KIJS, KIJL, FL1, XLLWS, FMEANWS, EMEANWS)
+      DO IJ=KIJS,KIJL
+      CALL FEMEANWS_PW(IJ, KIJL, FL1, XLLWS, FMEANWS(IJ), EMEANWS(IJ))
+      ENDDO
 
       CALL IMPHFTAIL(KIJS, KIJL, MIJ, FLM, WAVNUM, XK2CG, FL1)
 

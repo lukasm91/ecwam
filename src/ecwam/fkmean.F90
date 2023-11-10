@@ -152,3 +152,84 @@
       IF (LHOOK) CALL DR_HOOK('FKMEAN',1,ZHOOK_HANDLE)
 
       END SUBROUTINE FKMEAN
+      SUBROUTINE FKMEAN_PW (IDX, KIJL, FL1, WAVNUM,   &
+     &                   EM, FM1, F1, AK, XK)
+
+!$loki routine seq
+      USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
+
+      USE YOWFRED  , ONLY : FR       ,DFIM     ,DFIMOFR  ,DFIMFR   ,    &
+     &            DELTH    ,WETAIL   ,FRTAIL   ,WP1TAIL
+      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPCONS , ONLY : G        ,ZPI      ,EPSMIN
+
+      USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
+! ----------------------------------------------------------------------
+
+      IMPLICIT NONE
+
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
+
+      REAL(KIND=JWRB), DIMENSION(KIJL,NANG,NFRE), INTENT(IN) :: FL1
+      REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: WAVNUM 
+
+      REAL(KIND=JWRB),INTENT(OUT) :: EM, FM1, F1, AK, XK
+
+
+      INTEGER(KIND=JWIM) :: M, K
+      REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
+      REAL(KIND=JWRB) :: DELT25, COEFM1, COEF1, COEFA, COEFX, SQRTK
+      REAL(KIND=JWRB) :: TEMPA, TEMPX,  TEMP2
+
+
+
+!*    1. INITIALISE MEAN FREQUENCY ARRAY AND TAIL FACTOR.
+!        ------------------------------------------------
+
+        EM = EPSMIN
+        FM1= EPSMIN
+        F1 = EPSMIN
+        AK = EPSMIN
+        XK = EPSMIN
+
+         DELT25 = WETAIL*FR(NFRE)*DELTH
+         COEFM1 = FRTAIL*DELTH
+         COEF1 = WP1TAIL*DELTH*FR(NFRE)**2
+         COEFA = COEFM1*SQRT(G)/ZPI
+         COEFX = COEF1*(ZPI/SQRT(G))
+
+!*    2. INTEGRATE OVER FREQUENCIES AND DIRECTIONS.
+!        ------------------------------------------
+
+!*    2.2 SHALLOW WATER INTEGRATION.
+!         --------------------------
+
+          DO M=1,NFRE
+            SQRTK=SQRT(WAVNUM(IDX,M))
+            TEMPA = DFIM(M)/SQRTK
+            TEMPX = SQRTK*DFIM(M)
+            K=1
+            TEMP2 = FL1(IDX,K,M) 
+            DO K=2,NANG
+              TEMP2 = TEMP2+FL1(IDX,K,M)
+            ENDDO
+            EM = EM+DFIM(M)*TEMP2
+            FM1= FM1+DFIMOFR(M)*TEMP2
+            F1 = F1+DFIMFR(M)*TEMP2
+            AK = AK+TEMPA*TEMP2
+            XK = XK+TEMPX*TEMP2
+          ENDDO
+
+!*      ADD TAIL CORRECTION TO MEAN FREQUENCY AND
+!*      NORMALIZE WITH TOTAL ENERGY.
+          EM = EM+DELT25*TEMP2
+          FM1 = FM1+COEFM1*TEMP2
+          FM1 = EM/FM1
+          F1 = F1+COEF1*TEMP2
+          F1 = F1/EM
+          AK = AK+COEFA*TEMP2
+          AK = (EM/AK)**2
+          XK = XK+COEFX*TEMP2
+          XK = (XK/EM)**2
+
+      END SUBROUTINE FKMEAN_PW

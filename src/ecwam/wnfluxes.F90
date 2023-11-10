@@ -260,7 +260,7 @@ IF (LHOOK) CALL DR_HOOK('WNFLUXES',0,ZHOOK_HANDLE)
 IF (LHOOK) CALL DR_HOOK('WNFLUXES',1,ZHOOK_HANDLE)
 
 END SUBROUTINE WNFLUXES
-SUBROUTINE WNFLUXES_PW (IDX, KIJS, KIJL,                       &
+SUBROUTINE WNFLUXES_PW (IDX, KIJL,                       &
  &                   MIJ, RHOWGDFTH,                   &
  &                   CINV,                             &
  &                   SSURF, CICOVER,                   &
@@ -292,7 +292,7 @@ SUBROUTINE WNFLUXES_PW (IDX, KIJS, KIJL,                       &
 
       IMPLICIT NONE
 
-      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJS, KIJL
+      INTEGER(KIND=JWIM), INTENT(IN) :: IDX, KIJL
       INTEGER(KIND=JWIM), INTENT(IN) :: MIJ
 
       REAL(KIND=JWRB), DIMENSION(KIJL,NFRE), INTENT(IN) :: RHOWGDFTH
