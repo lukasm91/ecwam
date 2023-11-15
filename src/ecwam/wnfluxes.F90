@@ -360,12 +360,12 @@ SUBROUTINE WNFLUXES_PW (IDX, KIJL,                       &
         YSTRESS = 0.0_JWRB
 
 !     THE INTEGRATION ONLY UP TO FR=MIJ
-        DO M=1,NFRE
+        DO M=1,36
           K=1
           SUMT = SSURF(IDX,K,M)
           SUMX = SINTH(K)*SSURF(IDX,K,M)
           SUMY = COSTH(K)*SSURF(IDX,K,M)
-          DO K=2,NANG
+          DO K=2,12
             SUMT = SUMT + SSURF(IDX,K,M)
             SUMX = SUMX + SINTH(K)*SSURF(IDX,K,M)
             SUMY = SUMY + COSTH(K)*SSURF(IDX,K,M)

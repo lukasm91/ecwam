@@ -539,8 +539,8 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
         USFM = UFRIC(IJ)*MAX(FMEANWS(IJ), FMEAN(IJ))
 
         IF (LLUNSTR) THEN
-          DO K=1,NANG
-            DO M=1,NFRE
+          DO K=1,12
+            DO M=1,36
               FL1_LOC = FL1(IJ,K,M)
               SSOURCE_LOC = SSOURCE(IJ,K,M)
 
@@ -558,8 +558,8 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
             ENDDO
           ENDDO
         ELSE
-          DO K=1,NANG
-            DO M=1,NFRE
+          DO K=1,12
+            DO M=1,36
               FL1_LOC = FL1(IJ,K,M)
               SSOURCE_LOC = SSOURCE(IJ,K,M)
 

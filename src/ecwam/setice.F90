@@ -126,8 +126,8 @@
         ENDIF
 
         TEMP=CIREDUC*FLMIN
-        DO M = 1, NFRE
-          DO K = 1, NANG
+        DO M = 1, 36
+          DO K = 1, 12
             FL1(IDX,K,M)=FL1(IDX,K,M)*ICEFREE+TEMP*MAX(0.0_JWRB, COSWDIF(IDX,K))**2
           ENDDO
         ENDDO

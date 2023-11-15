@@ -104,7 +104,7 @@
 
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE    ,NFRE_RED
+      USE YOWPARAM , ONLY : NANG     ,NFRE
       USE YOWPCONS , ONLY : GM1
       USE YOWSHAL  , ONLY : BATHYMAX
 
@@ -125,11 +125,12 @@
       REAL(KIND=JWRB) :: CONST, ARG
       REAL(KIND=JPHOOK) :: ZHOOK_HANDLE
       REAL(KIND=JWRB) :: SBO
+      REAL(KIND=JWRB) :: SL_LOC, FLD_LOC
 
 ! ----------------------------------------------------------------------
 
       CONST = -2.0_JWRB*0.038_JWRB*GM1
-        DO M = 1, NFRE_RED
+        DO M = 1, 29
           IF(DEPTH < BATHYMAX) THEN
             ARG = 2.0_JWRB* DEPTH*WAVNUM(IDX,M)
             ARG = MIN(ARG,50.0_JWRB)
@@ -138,9 +139,13 @@
             SBO = 0.0_JWRB
           ENDIF
 
-          DO K=1,NANG
-            SL(IDX,K,M) = SL(IDX,K,M)+SBO*FL1(IDX,K,M)
-            FLD(IDX,K,M) = FLD(IDX,K,M)+SBO
+          DO K=1,12
+            SL_LOC = SL(IDX,K,M)
+            FLD_LOC = FLD(IDX,K,M)
+            SL_LOC = SL_LOC+SBO*FL1(IDX,K,M)
+            FLD_LOC = FLD_LOC+SBO
+            SL(IDX,K,M) = SL_LOC
+            FLD(IDX,K,M) = FLD_LOC
           ENDDO
         ENDDO
 

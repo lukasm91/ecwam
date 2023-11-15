@@ -124,7 +124,7 @@
 
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE,    NFRE_RED
+      USE YOWPARAM , ONLY : NANG     ,NFRE
 
       USE YOMHOOK  , ONLY : LHOOK    ,DR_HOOK, JPHOOK
 
@@ -167,15 +167,13 @@
              ENDDO
              Q=MIN(Q,1.0_JWRB)
              SDS = COEF_B_J*ALPH*Q*F1MEAN
-           ENDIF
       
-          DO M = 1, NFRE_RED
-             DO K=1,NANG
-                IF(DEPTH < DEPTHTRS) THEN
+             DO M = 1, 29
+               DO K=1, 12
                   SL(IDX,K,M) = SL(IDX,K,M)-SDS*FL1(IDX,K,M)
                   FLD(IDX,K,M) = FLD(IDX,K,M)-SDS
-                ENDIF
-              ENDDO
-           ENDDO
+               ENDDO
+             ENDDO
+           ENDIF
 
       END SUBROUTINE SDIWBK_PW

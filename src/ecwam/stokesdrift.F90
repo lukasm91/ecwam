@@ -95,9 +95,9 @@
       USTOKES = 0.0_JWRB
       VSTOKES = 0.0_JWRB
 
-      DO M=1,NFRE_ODD
+      DO M=1,35
          STFAC = STOKFAC(IDX,M)*DFIM_SIM(M)
-         DO K=1,NANG
+         DO K=1,12
             FAC3 = STFAC*FL1(IDX,K,M)
             USTOKES = USTOKES+FAC3*SINTH(K)
             VSTOKES = VSTOKES+FAC3*COSTH(K)
@@ -107,7 +107,7 @@
 !***  1.2 ADD CONTRIBUTION OF UNRESOLVED WAVES.
 !     -----------------------------------------
  
-      DO K=1,NANG
+      DO K=1,12
          FAC1 = CONST*SINTH(K)
          FAC2 = CONST*COSTH(K)
          USTOKES = USTOKES+FAC1*FL1(IDX,K,NFRE_ODD)
