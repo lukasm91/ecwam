@@ -67,8 +67,8 @@
       USE YOWPARAM , ONLY : NANG    ,NFRE, NANG_PARAM
       USE YOWPHYS  , ONLY : SDSBR   ,ISDSDTH ,ISB     ,IPSAT    ,      &
 &                  SSDSC2  , SSDSC4, SSDSC6,  MICHE, SSDSC3, SSDSBRF1, &
-&                  BRKPBCOEF ,SSDSC5, NSDSNTH, NDIKCUMUL,              &
-&                  INDICESSAT, SATWEIGHTS, CUMULW
+&                  BRKPBCOEF ,SSDSC5, NDIKCUMUL,              &
+&                  SATWEIGHTS, CUMULW
 
       USE YOMHOOK  , ONLY : LHOOK   ,DR_HOOK, JPHOOK
       USE YOWPCONS , ONLY : ROWATERM1 
@@ -125,13 +125,13 @@
           BTH0(IJ) = 0.0_JWRB
         ENDDO
 
-        DO K=1,NANG
+        DO K=1,12
           DO IJ=KIJS,KIJL
             BTH(IJ) = 0.0_JWRB
           ENDDO
           ! integrates in directional sector
-          DO K2=1,NSDSNTH*2+1
-            KK=INDICESSAT(K,K2)
+          DO K2=1,5*2+1
+            KK =  MOD(K-1 + K2-1-5 + 12, 12) + 1
             DO IJ=KIJS,KIJL
               BTH(IJ) = BTH(IJ) + SATWEIGHTS(K,K2)*FL1(IJ,KK,M)
             ENDDO
@@ -148,7 +148,7 @@
 
         ENDDO
 
-        DO K=1,NANG
+        DO K=1,12
           ! cumulative term
           DO IJ=KIJS,KIJL
             D(IJ,K) = D(IJ,K) + ZCOEF * (MAX(0._JWRB, BTH0(IJ)*TMP03-SSDSC4))**IPSAT
@@ -163,7 +163,7 @@
           ! CUMULATIVE TERM
           IF (SSDSC3 /= 0.0_JWRB) THEN
     
-            DO K=1,NANG
+            DO K=1,12
             ! Correction of saturation level for shallow-water kinematics
             ! Cumulative effect based on lambda   (breaking probability is
             ! the expected rate of sweeping by larger breaking waves)
@@ -173,7 +173,7 @@
               ENDDO
     
               DO M2=1,M-NDIKCUMUL
-                DO K2=1,NANG
+                DO K2=1,12
                   KK=ABS(K2-K)
                   IF ( KK > NANG/2) KK = KK-NANG/2
                   DO IJ=KIJS,KIJL
@@ -198,7 +198,7 @@
             RAORW = MAX(AIRD(IJ), 1.0_JWRB) * ROWATERM1
             FACTURB(IJ) = TMP01*RAORW*UFRIC(IJ)*UFRIC(IJ)
           ENDDO
-            DO K=1,NANG
+            DO K=1,12
               DO IJ=KIJS,KIJL
                 D(IJ,K)= D(IJ,K)- ZPIFR(M)*WAVNUM(IJ,M)*FACTURB(IJ)*COSWDIF(IJ,K)
               ENDDO
@@ -207,7 +207,7 @@
 
 
       ! ADD ALL CONTRIBUTIONS TO SOURCE TERM
-        DO K=1, NANG
+        DO K=1, 12
           DO IJ=KIJS,KIJL
             SL(IJ,K,M) = SL(IJ,K,M)+D(IJ,K)*FL1(IJ,K,M)
             FLD(IJ,K,M) = FLD(IJ,K,M)+D(IJ,K)
