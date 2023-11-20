@@ -104,7 +104,7 @@
 
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREREDL
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFRE_RED
       USE YOWPCONS , ONLY : GM1
       USE YOWSHAL  , ONLY : BATHYMAX
 
@@ -130,7 +130,7 @@
 ! ----------------------------------------------------------------------
 
       CONST = -2.0_JWRB*0.038_JWRB*GM1
-        DO M = 1, NFREREDL
+        DO M = 1, NFRE_RED
           IF(DEPTH < BATHYMAX) THEN
             ARG = 2.0_JWRB* DEPTH*WAVNUM(IDX,M)
             ARG = MIN(ARG,50.0_JWRB)

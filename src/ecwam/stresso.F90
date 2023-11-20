@@ -253,7 +253,7 @@
       USE YOWCOUP  , ONLY : LLGCBZ0
       USE YOWFRED  , ONLY : FR       ,RHOWG_DFIM ,DELTH    ,TH       ,    &
      &            COSTH    ,SINTH    ,FR5
-      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREL
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL
       USE YOWPHYS  , ONLY : TAUWSHELTER
       USE YOWTABL  , ONLY : EPS1
       USE YOWSTAT  , ONLY : IPHYS
@@ -299,7 +299,7 @@
 !*    CALCULATE LOW-FREQUENCY CONTRIBUTION TO STRESS AND ENERGY FLUX (positive sinput).
 !     ---------------------------------------------------------------------------------
 !     THE INTEGRATION ONLY UP TO FR=MIJ SINCE RHOWGDFTH=0 FOR FR>MIJ
-        DO M=1,NFREL
+        DO M=1,NFRE
           K=1
           SUMX = SPOS(IDX,K,M)*SINTH(K)
           SUMY = SPOS(IDX,K,M)*COSTH(K)

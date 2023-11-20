@@ -124,7 +124,7 @@
 
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREREDL
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFRE_RED
 
       USE YOMHOOK  , ONLY : LHOOK    ,DR_HOOK, JPHOOK
 
@@ -168,7 +168,7 @@
              Q=MIN(Q,1.0_JWRB)
              SDS = COEF_B_J*ALPH*Q*F1MEAN
       
-             DO M = 1, NFREREDL
+             DO M = 1, NFRE_RED
                DO K=1, NANGL
                   SL(IDX,K,M) = SL(IDX,K,M)-SDS*FL1(IDX,K,M)
                   FLD(IDX,K,M) = FLD(IDX,K,M)-SDS
