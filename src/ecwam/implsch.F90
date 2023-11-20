@@ -420,7 +420,7 @@ SUBROUTINE IMPLSCH_AFTER_SNONLIN (KIJS, KIJL, FL1,                         &
       USE YOWCOUT  , ONLY : LWFLUXOUT 
       USE YOWFRED  , ONLY : FR       ,TH       ,COFRM4    ,FLMAX
       USE YOWICE   , ONLY : FLMIN    ,LCIWABR  ,LICERUN   ,LMASKICE
-      USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR
+      USE YOWPARAM , ONLY : NANG     ,NFRE     ,LLUNSTR, NANGL, NFREL
       USE YOWPCONS , ONLY : WSEMEAN_MIN
       USE YOWSTAT  , ONLY : IDELT    ,LBIWBK
       USE YOWWNDG  , ONLY : ICODE    ,ICODE_CPL
@@ -539,8 +539,8 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
         USFM = UFRIC(IJ)*MAX(FMEANWS(IJ), FMEAN(IJ))
 
         IF (LLUNSTR) THEN
-          DO K=1,12
-            DO M=1,36
+          DO K=1,NANGL
+            DO M=1,NFREL
               FL1_LOC = FL1(IJ,K,M)
               SSOURCE_LOC = SSOURCE(IJ,K,M)
 
@@ -558,8 +558,8 @@ IF (LHOOK) CALL DR_HOOK('IMPLSCH',0,ZHOOK_HANDLE)
             ENDDO
           ENDDO
         ELSE
-          DO K=1,12
-            DO M=1,36
+          DO K=1,NANGL
+            DO M=1,NFREL
               FL1_LOC = FL1(IJ,K,M)
               SSOURCE_LOC = SSOURCE(IJ,K,M)
 

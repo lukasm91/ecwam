@@ -56,7 +56,7 @@
       USE YOWFRED  , ONLY : FR       ,DFIM     ,DELTH    ,TH       ,    &
      &                      DFIM_SIM ,FRATIO   ,COSTH    ,SINTH
       USE YOWICE   , ONLY : LICERUN  ,LWAMRSETCI, CITHRSH
-      USE YOWPARAM , ONLY : NANG     ,NFRE     ,NFRE_ODD
+      USE YOWPARAM , ONLY : NANG     ,NFRE     ,NFRE_ODD, NANGL, NFREL
 
       USE YOMHOOK  , ONLY : LHOOK,   DR_HOOK, JPHOOK
        
@@ -95,9 +95,9 @@
       USTOKES = 0.0_JWRB
       VSTOKES = 0.0_JWRB
 
-      DO M=1,35
+      DO M=1,NFREL-1
          STFAC = STOKFAC(IDX,M)*DFIM_SIM(M)
-         DO K=1,12
+         DO K=1,NANGL
             FAC3 = STFAC*FL1(IDX,K,M)
             USTOKES = USTOKES+FAC3*SINTH(K)
             VSTOKES = VSTOKES+FAC3*COSTH(K)
@@ -107,7 +107,7 @@
 !***  1.2 ADD CONTRIBUTION OF UNRESOLVED WAVES.
 !     -----------------------------------------
  
-      DO K=1,12
+      DO K=1,NANGL
          FAC1 = CONST*SINTH(K)
          FAC2 = CONST*COSTH(K)
          USTOKES = USTOKES+FAC1*FL1(IDX,K,NFRE_ODD)

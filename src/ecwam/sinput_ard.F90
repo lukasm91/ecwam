@@ -78,7 +78,7 @@
     
     USE YOWCOUP, ONLY: LLCAPCHNK, LLNORMAGAM
     USE YOWFRED, ONLY: FR, TH, DFIM, COSTH, SINTH, ZPIFR, DELTH
-    USE YOWPARAM, ONLY: NANG, NFRE
+    USE YOWPARAM, ONLY: NANG, NFRE, NANGL, NFREL
     USE YOWPCONS, ONLY: G, GM1, EPSMIN, EPSUS, ZPI
     USE YOWPHYS, ONLY: ZALP, TAUWSHELTER, XKAPPA, BETAMAXOXKAPPA2, RN1_RN, RNU, RNUM, SWELLF, SWELLF2, SWELLF3, SWELLF4,  &
     & SWELLF5, SWELLF6, SWELLF7, SWELLF7M1, Z0RAT, Z0TUBMAX, ABMIN, ABMAX
@@ -181,14 +181,14 @@
       UORBT = EPSMIN
       AORB = EPSMIN
       
-      DO M=1,36
+      DO M=1,NFREL
         SIG = ZPIFR(M)
         SIG2 = SIG**2
         DFIM_SIG2 = DFIM(M)*SIG2
         
         K = 1
         TEMP = FL1(IDX, K, M)
-        DO K=2,12
+        DO K=2,NANGL
           TEMP = TEMP + FL1(IDX, K, M)
         END DO
         
@@ -274,7 +274,7 @@
     !*    2. MAIN LOOP OVER FREQUENCIES.
     !        ---------------------------
     
-    DO M=1,36
+    DO M=1,NFREL
       SIG = ZPIFR(M)
       SIG2 = SIG**2
       CONST = SIG*CONST1
@@ -312,7 +312,7 @@
       !*    2.1 LOOP OVER DIRECTIONS.
       !         ---------------------
       
-      DO K=1,12
+      DO K=1,NANGL
         XLLWS(IDX, K, M) = 0.0_JWRB
       END DO
       
@@ -331,7 +331,7 @@
         SUMF = 0.0_JWRB
         SUMFSIN2 = 0.0_JWRB
 
-        DO K=1,12
+        DO K=1,NANGL
           IF (LTAUWSHELTER) THEN
             COSLP = COS(TH(K) - USDIRP(IGST))
           ELSE
@@ -375,7 +375,7 @@
       !         AND THEN ADDING INPUT SOURCE TERM TO NET SOURCE FUNCTION.
       !         ---------------------------------------------------------
       
-      DO K=1,12
+      DO K=1,NANGL
         
         SLP_AVG = 0_JPRB
         FLP_AVG = 0_JPRB

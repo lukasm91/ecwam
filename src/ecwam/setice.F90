@@ -94,7 +94,7 @@
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
       USE YOWICE   , ONLY : FLMIN    ,CITHRSH
-      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREL
       USE YOWPCONS , ONLY : EPSMIN
 
       USE YOMHOOK  , ONLY : LHOOK    ,DR_HOOK, JPHOOK
@@ -126,8 +126,8 @@
         ENDIF
 
         TEMP=CIREDUC*FLMIN
-        DO M = 1, 36
-          DO K = 1, 12
+        DO M = 1, NFREL
+          DO K = 1, NANGL
             FL1(IDX,K,M)=FL1(IDX,K,M)*ICEFREE+TEMP*MAX(0.0_JWRB, COSWDIF(IDX,K))**2
           ENDDO
         ENDDO

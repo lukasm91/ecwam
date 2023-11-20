@@ -282,7 +282,7 @@ SUBROUTINE WNFLUXES_PW (IDX, KIJL,                       &
       USE YOWFRED  , ONLY : FR       ,COSTH       ,SINTH
       USE YOWICE   , ONLY : LICERUN  ,LWAMRSETCI, CITHRSH, CIBLOCK
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREL
       USE YOWPCONS , ONLY : TAUOCMIN ,TAUOCMAX ,PHIEPSMIN,PHIEPSMAX,    &
      &               EPSUS ,EPSU10   ,G        ,ZPI
 
@@ -360,12 +360,12 @@ SUBROUTINE WNFLUXES_PW (IDX, KIJL,                       &
         YSTRESS = 0.0_JWRB
 
 !     THE INTEGRATION ONLY UP TO FR=MIJ
-        DO M=1,36
+        DO M=1,NFREL
           K=1
           SUMT = SSURF(IDX,K,M)
           SUMX = SINTH(K)*SSURF(IDX,K,M)
           SUMY = COSTH(K)*SSURF(IDX,K,M)
-          DO K=2,12
+          DO K=2,NANGL
             SUMT = SUMT + SSURF(IDX,K,M)
             SUMX = SUMX + SINTH(K)*SSURF(IDX,K,M)
             SUMY = SUMY + COSTH(K)*SSURF(IDX,K,M)

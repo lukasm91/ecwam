@@ -104,7 +104,7 @@
 
       USE PARKIND_WAVE, ONLY : JWIM, JWRB, JWRU
 
-      USE YOWPARAM , ONLY : NANG     ,NFRE
+      USE YOWPARAM , ONLY : NANG     ,NFRE, NANGL, NFREREDL
       USE YOWPCONS , ONLY : GM1
       USE YOWSHAL  , ONLY : BATHYMAX
 
@@ -130,7 +130,7 @@
 ! ----------------------------------------------------------------------
 
       CONST = -2.0_JWRB*0.038_JWRB*GM1
-        DO M = 1, 29
+        DO M = 1, NFREREDL
           IF(DEPTH < BATHYMAX) THEN
             ARG = 2.0_JWRB* DEPTH*WAVNUM(IDX,M)
             ARG = MIN(ARG,50.0_JWRB)
@@ -139,7 +139,7 @@
             SBO = 0.0_JWRB
           ENDIF
 
-          DO K=1,12
+          DO K=1,NANGL
             SL_LOC = SL(IDX,K,M)
             FLD_LOC = FLD(IDX,K,M)
             SL_LOC = SL_LOC+SBO*FL1(IDX,K,M)
